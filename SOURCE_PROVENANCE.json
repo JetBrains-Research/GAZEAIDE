@@ -1,0 +1,17 @@
+{
+  "project": "GAZEAIDE",
+  "version": "1.0.0",
+  "releaseDate": "2026-11-05",
+  "repository": "https://github.com/JetBrains-Research/GAZEAIDE",
+  "upstreamPlugin": "https://github.com/wedalb/implicit-gaze-triggered-ai-assistance-for-code-review-in-the-jetbrains-ide",
+  "upstreamBaseCommit": "83ca0e5ce9db9f48b21241fb0eb1132b574d67c1",
+  "originalAuthor": "Heidi Albarazi",
+  "projectOrigin": "Started during an internship at JetBrains Research",
+  "subsequentUpdatesBy": "Ilia Zaharov",
+  "modified": true,
+  "projectLicense": "GPL-3.0-only",
+  "thirdPartyNotices": [
+    "src/main/resources/gaze/THIRD-PARTY-NOTICES.md",
+    "standalone/THIRD-PARTY-NOTICES.md"
+  ]
+}

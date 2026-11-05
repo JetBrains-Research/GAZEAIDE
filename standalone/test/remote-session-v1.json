@@ -1,0 +1,24 @@
+{
+  "protocol": "gazeaide-upload-v1", "schemaVersion": 1,
+  "uploadId": "d43bef80-d73e-4454-b87b-5ab97f12646f", "kind": "session", "studyId": "study-1", "participantId": "P01",
+  "pluginVersion": "1.0.0", "taskCode": "task-2", "durationMs": 1000,
+  "initialConfiguration": {
+    "input": "WEBCAM", "scenario": "RELATIONSHIPS", "calibrated": true,
+    "features": {"focus": false, "fadeViewed": false, "relationships": false, "historyContext": true, "explanations": true, "stableMs": 500, "fadeAfterMs": 1500, "explainAfterMs": 3000},
+    "tracking": {
+      "showCursor": false, "response": "BALANCED", "smoothingMs": 85, "lineHoldMs": 110, "pipelineVersion": "raw-eyemu-median3-time-lowpass-line-hold-v2",
+      "calibration": {"version": 2, "displayWidth": 1920, "displayHeight": 1080, "medianErrorPx": 12, "p90ErrorPx": 24, "medianVerticalPx": 8, "p90VerticalPx": 16, "jitter90Px": 7, "samples": 100, "targets": 5},
+      "personalResponse": {"version": 1, "active": true, "response": "BALANCED", "p90VerticalPx": 5, "jitter90Px": 4, "targetHitRate": 0.9, "acquisitionMs": 300, "standardHitRate": 0.8, "standardAcquisitionMs": 400, "rowHeight": 18, "targets": 4, "samples": 80}
+    },
+    "review": {"purpose": "COMPARE", "quietOffers": true, "cooldownMs": 30000}
+  },
+  "configurationChanges": [{"elapsedMs": 0, "paused": false, "configuration": {
+    "input": "WEBCAM", "scenario": "RELATIONSHIPS", "calibrated": true,
+    "features": {"focus": false, "fadeViewed": false, "relationships": false, "historyContext": true, "explanations": true, "stableMs": 500, "fadeAfterMs": 1500, "explainAfterMs": 3000},
+    "tracking": {"showCursor": false, "response": "BALANCED", "smoothingMs": 85, "lineHoldMs": 110, "pipelineVersion": "raw-eyemu-median3-time-lowpass-line-hold-v2",
+      "calibration": {"version": 2, "displayWidth": 1920, "displayHeight": 1080, "medianErrorPx": 12, "p90ErrorPx": 24, "medianVerticalPx": 8, "p90VerticalPx": 16, "jitter90Px": 7, "samples": 100, "targets": 5},
+      "personalResponse": {"version": 1, "active": true, "response": "BALANCED", "p90VerticalPx": 5, "jitter90Px": 4, "targetHitRate": 0.9, "acquisitionMs": 300, "standardHitRate": 0.8, "standardAcquisitionMs": 400, "rowHeight": 18, "targets": 4, "samples": 80}},
+    "review": {"purpose": "COMPARE", "quietOffers": true, "cooldownMs": 30000}
+  }}],
+  "events": [{"elapsedMs": 123, "fileId": "f1", "line": 3, "column": 5, "dwellMs": 90, "input": "WEBCAM", "legacyDwellTrigger": true, "regionId": "r1", "regionFirstLine": 2, "regionLastLine": 8}]
+}

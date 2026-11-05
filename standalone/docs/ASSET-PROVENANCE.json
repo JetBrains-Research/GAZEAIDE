@@ -1,0 +1,27 @@
+[
+  {
+    "pluginSource": "src/main/resources/gaze/web/uniteye-core.js",
+    "standaloneAsset": "standalone/public/vendor/uniteye-core.js",
+    "sha256": "5f99e0626983f4e4c19e8421e1c05fc9117a5d889329eaac8faabaa28bd4f3cd"
+  },
+  {
+    "pluginSource": "src/main/resources/gaze/web/uniteye-cv.js",
+    "standaloneAsset": "standalone/public/vendor/uniteye-cv.js",
+    "sha256": "30a74f257e39bb23f55831dfefb9d2df729d38eb268a840772167dc528243ca0"
+  },
+  {
+    "pluginSource": "src/main/resources/gaze/web/models/eyemu.onnx",
+    "standaloneAsset": "standalone/public/vendor/models/eyemu.onnx",
+    "sha256": "8b5a98b3242f4e6ed67b6dfb8123efd96cb801e646a2c42f3b4ed91a955053a5"
+  },
+  {
+    "pluginSource": "src/main/resources/demo/GazeReviewDemo.java",
+    "standaloneAsset": "standalone/public/GazeReviewDemo.java",
+    "sha256": "4ab8aa3151fc043f959db557a4d3c0cf0d7f2eefa6d462c85f040a992000a007"
+  },
+  {
+    "pluginSource": "src/main/resources/remote/google-drive-receiver.js",
+    "standaloneAsset": "standalone/docs/google-drive-receiver.js",
+    "sha256": "e9263f8b7c05b3a7212fae54e3328dd00212d5b3c5fea770330e21e5937c8e45"
+  }
+]

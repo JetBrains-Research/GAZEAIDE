@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="gazeaide-key" content="__GAZEAIDE_TOKEN__" />
+    <title>GAZEAIDE · Standalone</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/vendor/uniteye-core.js" defer></script>
+    <script type="module" src="/app.mjs"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/" aria-label="GAZEAIDE home"
+        ><span class="brand-icon">◎</span> GAZEAIDE <small>STANDALONE</small></a
+      ><span id="project-name"></span><span class="local-dot">●</span
+      ><span>Local research companion</span><button id="help">Help</button>
+    </header>
+    <div id="notice" role="status" aria-live="polite">
+      Review a Codex session or try the example, then choose an input and start
+      a recording.
+    </div>
+    <main>
+      <aside id="setup">
+        <div class="section-label">EXPERIMENT SETUP</div>
+        <section>
+          <h2><span class="step">1</span> Input</h2>
+          <label for="input">Viewing source</label
+          ><select id="input" class="setup-control">
+            <option value="MOUSE_PROXY">Mouse proxy</option>
+            <option value="WEBCAM">Webcam eye tracking</option>
+            <option value="MOUSE_SIMULATION">
+              Mouse simulation of webcam routing
+            </option>
+          </select>
+          <p class="hint">
+            Mouse modes are interaction proxies, not ocular eye tracking.
+          </p>
+          <div class="button-row">
+            <button id="camera">Connect webcam</button
+            ><button id="stop-camera" disabled>Stop camera</button>
+          </div>
+          <p id="camera-status" class="hint">Camera off</p>
+          <div class="button-row">
+            <button id="calibrate" class="setup-control">Calibrate</button
+            ><button id="accuracy" class="setup-control">Check accuracy</button>
+          </div>
+          <details>
+            <summary>Response & personal profile</summary>
+            <label
+              >Response<select id="response" class="setup-control">
+                <option selected>STEADY</option>
+                <option value="EXTRA_STEADY">
+                  EXTRA STEADY · more smoothing and delay
+                </option>
+                <option>BALANCED</option>
+                <option>RESPONSIVE</option>
+              </select></label
+            ><button id="personalize" class="setup-control">
+              Fit personal response</button
+            ><label class="check"
+              ><input type="checkbox" id="use-profile" class="setup-control" />
+              Use saved profile</label
+            >
+            <p class="hint" id="profile-status">No personal profile saved.</p>
+            <button id="reset-profile" class="setup-control">
+              Reset personal profile
+            </button>
+          </details>
+          <label class="check"
+            ><input type="checkbox" id="cursor" /> Show gaze cursor</label
+          >
+        </section>
+        <section>
+          <h2><span class="step">2</span> Scenario</h2>
+          <select
+            id="scenario"
+            aria-label="Scenario"
+            class="setup-control"
+          ></select>
+          <p class="hint" id="scenario-hint"></p>
+          <details id="custom-options">
+            <summary>Custom features & timing</summary>
+            <div id="feature-switches"></div>
+            <label
+              >Stability (ms)<input
+                id="stableMs"
+                class="setup-control"
+                type="number"
+                min="200"
+                max="2000"
+                step="50"
+                value="500" /></label
+            ><label
+              >Fade after (ms)<input
+                id="fadeAfterMs"
+                class="setup-control"
+                type="number"
+                min="500"
+                max="30000"
+                step="100"
+                value="1500" /></label
+            ><label
+              >Prepare context after (ms)<input
+                id="explainAfterMs"
+                class="setup-control"
+                type="number"
+                min="1000"
+                max="15000"
+                step="100"
+                value="3000"
+            /></label>
+          </details>
+          <label
+            >Review question<select id="purpose" class="setup-control">
+              <option value="EXPLAIN">Explain this block</option>
+              <option value="COMPARE">Compare viewed regions</option>
+              <option value="REVIEW">Review for possible problems</option>
+            </select></label
+          ><label class="check"
+            ><input type="checkbox" id="quiet" class="setup-control" checked />
+            Quiet assistance offers</label
+          >
+        </section>
+        <section>
+          <h2><span class="step">3</span> Session</h2>
+          <label
+            >Participant code<input
+              id="participant"
+              class="setup-control"
+              maxlength="120"
+              placeholder="e.g. P01" /></label
+          ><label
+            >Task<input
+              id="task"
+              class="setup-control"
+              maxlength="120"
+              placeholder="e.g. validator review" /></label
+          ><label
+            >Condition<input
+              id="condition"
+              class="setup-control"
+              maxlength="120"
+              placeholder="e.g. follow my reading"
+          /></label>
+          <div id="setup-summary" class="hint"></div>
+          <button id="record" class="primary wide">Review setup & start</button>
+          <div class="button-row">
+            <button id="pause" disabled>Pause</button
+            ><button id="stop" disabled>Stop recording</button>
+          </div>
+          <p class="hint" id="record-status">Setup paused · no recording</p>
+        </section>
+        <section>
+          <h2>Codex sessions</h2>
+          <p class="hint">
+            Open conversations from your local Codex history, including answers,
+            code blocks and recorded changes.
+          </p>
+          <label for="thread-search">Find a session</label>
+          <input id="thread-search" placeholder="Search session titles…" />
+          <label class="check"
+            ><input type="checkbox" id="thread-archived" /> Archived
+            sessions</label
+          >
+          <div class="button-row">
+            <button id="find-threads">Find sessions</button
+            ><button id="own-chat">Companion chat</button>
+          </div>
+          <select id="threads" aria-label="Local Codex sessions">
+            <option value="">Connect and find sessions…</option>
+          </select>
+          <div class="button-row">
+            <button id="open-thread">Open session</button
+            ><button id="more-threads" hidden>More sessions</button>
+          </div>
+          <p class="hint" id="thread-status">
+            Opening history is local and read-only. Follow-up questions use the
+            companion's separate chat.
+          </p>
+        </section>
+        <section>
+          <h2>Files & text (optional)</h2>
+          <p class="hint">
+            Code, Markdown, plain text, JSON and other text files. Images, PDFs
+            and binary files need another viewer.
+          </p>
+          <p class="hint" id="project-path"></p>
+          <div class="button-row">
+            <button id="example" class="setup-control">Example code</button
+            ><button id="add-files" class="setup-control">Open files…</button>
+          </div>
+          <input id="file-picker" type="file" multiple hidden /><label
+            class="sr-only"
+            for="file-filter"
+            >Filter source files</label
+          ><input id="file-filter" placeholder="Filter files…" />
+          <nav id="files" aria-label="Source files"></nav>
+        </section>
+      </aside>
+      <section id="workspace">
+        <nav class="workspace-tabs" aria-label="Review content">
+          <button id="view-conversation" class="selected">
+            Codex conversation</button
+          ><button id="view-source">Files & text</button>
+          <button id="expand-review">Expand viewer</button>
+        </nav>
+        <div id="session-tools">
+          <p id="review-title">Companion conversation</p>
+          <div class="button-row">
+            <button id="refresh-thread">Refresh session</button
+            ><button id="older-turns" hidden>Load earlier turns</button
+            ><button id="latest-output">Latest answer</button
+            ><button id="next-change">Next recorded diff</button
+            ><button id="sample-conversation">Try sample conversation</button>
+          </div>
+          <p class="hint" id="review-status">
+            Open a local session, or ask Codex below. Gaze features apply to the
+            content displayed here.
+          </p>
+          <p class="hint" id="pending-review" hidden>
+            New session content is available. Refresh session to load it; your
+            displayed snapshot stays fixed while you read.
+          </p>
+          <label class="check"
+            ><input type="checkbox" id="follow-output" checked /> Follow new
+            output when not recording</label
+          >
+          <label class="check"
+            ><input type="checkbox" id="include-command-output" /> Include
+            progress messages & command output</label
+          >
+        </div>
+        <div class="editor-bar">
+          <span id="filename">GazeReviewDemo.java</span
+          ><span class="editor-actions"
+            ><button id="reload">Reload source</button
+            ><label
+              >Text size
+              <select id="font-size">
+                <option value="15">15</option>
+                <option value="17" selected>17</option>
+                <option value="20">20</option>
+                <option value="24">24</option>
+              </select></label
+            ></span
+          >
+        </div>
+        <div id="code-scroll" tabindex="0" aria-label="Content viewer">
+          <div id="code"></div>
+        </div>
+        <div class="agent-options">
+          <label class="check"
+            ><input type="checkbox" id="attach-agent-context" checked /> Attach
+            recent context</label
+          ><button id="preview-agent-context">Preview attachment</button
+          ><label class="check"
+            ><input type="checkbox" id="record-agent-example" checked /> Save
+            research example locally</label
+          >
+        </div>
+        <div id="session-compose">
+          <label for="chat-question">Ask Codex in the companion chat</label>
+          <div class="compose-row">
+            <textarea
+              id="chat-question"
+              rows="2"
+              placeholder="Ask a question, or capture a passage with Gaze-assisted review…"
+            ></textarea
+            ><button id="send-chat" class="primary">Send question</button>
+          </div>
+          <p class="hint">
+            Send attaches bounded context from recent recording visits and the
+            visible content. The attachment includes source/version and
+            uncertainty. Only Send requests an answer.
+          </p>
+        </div>
+        <footer>
+          <span id="target-status">No active content target</span
+          ><span id="input-label">MOUSE_PROXY</span>
+        </footer>
+      </section>
+      <aside id="research">
+        <nav id="tabs" aria-label="Research views">
+          <button data-tab="session" class="selected">Session</button
+          ><button data-tab="context">Context</button
+          ><button data-tab="tour">Walkthrough</button
+          ><button data-tab="results">Results</button
+          ><button data-tab="codex">Codex</button>
+        </nav>
+        <div id="session" class="panel active">
+          <div class="section-label">LIVE VIEWING</div>
+          <h1>Your reading, in context.</h1>
+          <p id="live-instructions">
+            Follow my reading keeps a stable viewed code block prominent.
+          </p>
+          <div class="stat-grid">
+            <div>
+              <strong id="visit-count">0</strong><small>line visits</small>
+            </div>
+            <div>
+              <strong id="exposure">0.0 s</strong
+              ><small>viewing exposure</small>
+            </div>
+          </div>
+          <div class="card">
+            <span class="section-label">CONTEXT PREPARATION</span
+            ><progress id="dwell" max="3000" value="0"></progress>
+            <p id="dwell-status">
+              Choose Gaze-assisted review to prepare a question.
+            </p>
+            <button id="preview">Preview captured context</button>
+          </div>
+          <div id="offer" class="card" hidden>
+            <strong>A question is ready</strong>
+            <p id="offer-label"></p>
+            <div class="button-row">
+              <button id="open-offer">Open captured offer</button
+              ><button id="dismiss-offer">Dismiss</button>
+            </div>
+          </div>
+          <p class="limits">
+            Viewing exposure does not establish comprehension, correctness,
+            confusion, or completed review. Camera frames and raw task samples
+            are not recorded.
+          </p>
+        </div>
+        <div id="context" class="panel">
+          <div class="section-label">CAPTURED AI CONTEXT</div>
+          <h2>Review before sending</h2>
+          <p id="context-status">
+            Dwell within a passage or code block to prepare context, or capture
+            the current block explicitly.
+          </p>
+          <button id="capture">Capture current block</button
+          ><label for="prompt">Question & captured source</label
+          ><textarea
+            id="prompt"
+            rows="20"
+            placeholder="Your captured prompt will appear here."
+          ></textarea>
+          <div class="button-row">
+            <button id="copy-prompt">Copy prompt</button
+            ><button id="send-context" class="primary">Send to Codex</button>
+          </div>
+          <p class="hint">
+            Only Send makes an AI request. Replies appear in the main Codex
+            conversation viewer. You can also paste this prompt into native
+            Codex chat.
+          </p>
+        </div>
+        <div id="tour" class="panel">
+          <div class="section-label">REVIEW WALKTHROUGH</div>
+          <h2>Overview → files → code</h2>
+          <button id="build-tour">Capture walkthrough</button
+          ><label class="check"
+            ><input id="follow-tour" type="checkbox" checked /> Follow stable
+            viewed code</label
+          >
+          <div id="tour-overview" class="hint">
+            Capture open source files or use a saved session.
+          </div>
+          <div class="button-row">
+            <button id="tour-prev">Previous</button
+            ><button id="tour-next">Next</button>
+          </div>
+          <nav id="tour-files"></nav>
+          <select id="tour-steps" aria-label="Walkthrough steps"></select>
+          <p id="tour-location" class="hint"></p>
+          <pre id="tour-code"></pre>
+          <label>Your notes<textarea id="tour-notes" rows="4"></textarea></label
+          ><label class="check"
+            ><input id="tour-reviewed" type="checkbox" /> I have reviewed this
+            step</label
+          ><button id="tour-ask">Prepare question about this step</button
+          ><button id="export-tour">Export walkthrough HTML</button>
+          <p class="limits">
+            Gaze selects a step; only you mark it reviewed. Snapshots do not
+            establish author rationale or cover complete Git diffs.
+          </p>
+        </div>
+        <div id="results" class="panel">
+          <div class="section-label">LOCAL RECORDINGS</div>
+          <h2>Viewing report & replay</h2>
+          <div class="button-row">
+            <button id="refresh-sessions">Refresh library</button
+            ><button id="import-session">Import JSON…</button>
+          </div>
+          <input id="session-picker" type="file" accept=".json" hidden /><select
+            id="sessions"
+            aria-label="Saved recordings"
+          >
+            <option value="">Current session</option>
+          </select>
+          <p id="result-summary">Stop a recording to inspect results.</p>
+          <div class="button-row">
+            <button data-export="json">JSON</button
+            ><button data-export="csv">CSV</button
+            ><button data-export="html">HTML report</button>
+          </div>
+          <label
+            >Replay visit<input
+              id="replay"
+              type="range"
+              min="0"
+              max="0"
+              value="0"
+          /></label>
+          <div class="button-row">
+            <button id="play-replay">Play trace</button
+            ><select id="trace-source" aria-label="Trace input filter">
+              <option value="">All input sources</option>
+              <option>WEBCAM</option>
+              <option>MOUSE_PROXY</option>
+              <option>MOUSE_SIMULATION</option>
+            </select>
+          </div>
+          <p id="replay-label" class="hint"></p>
+          <pre id="replay-code"></pre>
+          <label
+            >Trace annotation<textarea
+              id="trace-note"
+              rows="2"
+            ></textarea></label
+          ><label class="check"
+            ><input id="trace-pruned" type="checkbox" /> Exclude this visit from
+            trace export</label
+          >
+          <div id="heatmap"></div>
+          <details>
+            <summary>Optional research upload</summary>
+            <p class="hint">
+              Reduced upload omits source, paths, local labels, notes, AI text
+              and absolute event times. Review the payload. Configure study
+              consent, storage, retention and withdrawal separately.
+            </p>
+            <label
+              >HTTPS receiver<input
+                id="endpoint"
+                placeholder="https://…" /></label
+            ><label>Study code<input id="study-code" maxlength="64" /></label
+            ><label
+              >Participant code<input
+                id="remote-participant"
+                maxlength="64" /></label
+            ><label>Task code<input id="remote-task" maxlength="64" /></label
+            ><label
+              >Participant token (memory only)<input
+                id="upload-token"
+                type="password"
+                autocomplete="off" /></label
+            ><label class="check"
+              ><input id="upload-consent" type="checkbox" /> I have configured
+              and reviewed study-specific data handling.</label
+            >
+            <div class="button-row">
+              <button id="test-upload">Synthetic test</button
+              ><button id="preview-upload">Preview reduced data</button>
+            </div>
+            <pre id="reduced-preview"></pre>
+            <button id="send-upload">Upload previewed payload</button
+            ><button id="retry-upload">Retry queued upload</button>
+            <p id="upload-status" class="hint">No upload service connected.</p>
+          </details>
+        </div>
+        <div id="codex" class="panel">
+          <div class="section-label">CODEX CONNECTION</div>
+          <h2>Review conversations & content</h2>
+          <p class="hint">
+            Uses your installed Codex CLI and its sign-in. This review
+            conversation uses a read-only sandbox. Open local Codex sessions on
+            the left to review them in the main viewer. Questions go to the
+            companion's own chat.
+          </p>
+          <div class="button-row">
+            <button id="connect-codex">Connect Codex</button
+            ><button id="new-chat">New conversation</button
+            ><button id="interrupt">Interrupt</button>
+          </div>
+          <p id="codex-status">Disconnected</p>
+          <button id="show-companion">Show companion conversation</button>
+          <details>
+            <summary>Agent research records & feedback</summary>
+            <button id="refresh-agent-examples">Refresh research records</button
+            ><select
+              id="agent-examples"
+              aria-label="Agent research examples"
+            ></select>
+            <p class="hint" id="agent-research-status">
+              Local question/context/answer records are separate from reduced
+              study uploads.
+            </p>
+            <p id="agent-example-question"></p>
+            <p class="hint" id="agent-example-summary"></p>
+            <pre id="agent-example-answer"></pre>
+            <details>
+              <summary>Inspect full research record (JSON)</summary>
+              <pre id="agent-example-text"></pre>
+            </details>
+            <label
+              >Answer helpfulness<select id="agent-feedback">
+                <option value="unlabelled">Unlabelled</option>
+                <option value="helpful">Helpful</option>
+                <option value="mixed">Mixed</option>
+                <option value="not_helpful">Not helpful</option>
+              </select></label
+            ><label
+              >Optional feedback<textarea
+                id="agent-feedback-note"
+                rows="2"
+                maxlength="5000"
+              ></textarea></label
+            ><button id="save-agent-feedback">Save feedback</button
+            ><button id="export-agent-dataset">
+              Export agent dataset JSONL
+            </button>
+          </details>
+          <details>
+            <summary>Companion message log</summary>
+            <div id="messages" aria-live="polite"></div>
+          </details>
+          <details>
+            <summary>Connect context to native Codex via MCP</summary>
+            <p class="hint">
+              Run this once in a terminal, then enable the MCP server in Codex.
+              The app must remain running. MCP reads snapshots; it does not
+              submit questions or change Codex’s editor.
+            </p>
+            <pre id="mcp-command"></pre>
+          </details>
+        </div>
+      </aside>
+    </main>
+    <dialog id="review-dialog">
+      <h2>Review experiment setup</h2>
+      <pre id="review-summary"></pre>
+      <p>
+        Recording stores viewing visits and captured code locally. AI requests
+        and remote uploads are separate explicit actions.
+      </p>
+      <div class="button-row">
+        <button id="cancel-start">Back</button
+        ><button id="confirm-start" class="primary">Start recording</button>
+      </div>
+    </dialog>
+    <dialog id="agent-context-dialog">
+      <h2>Automatic context attachment</h2>
+      <p>
+        Recent recording visits (up to ten minutes), the selected target and
+        visible content, capped together at eight regions and 12,000 characters.
+        Source snapshots and uncertainty are preserved. No camera frames or raw
+        gaze samples are included.
+      </p>
+      <pre id="agent-context-text"></pre>
+      <button id="close-agent-context">Close</button>
+    </dialog>
+    <dialog id="guide">
+      <div class="section-label">GUIDED SETUP</div>
+      <h2 id="guide-title"></h2>
+      <p id="guide-text"></p>
+      <p id="guide-status" role="status" aria-live="polite"></p>
+      <div id="target-field"><span id="calibration-target">◎</span></div>
+      <pre id="guide-result"></pre>
+      <div class="button-row">
+        <button id="guide-cancel">Cancel / close</button
+        ><button id="guide-retry" disabled>Retry this target</button
+        ><button id="guide-save" class="primary" hidden>Save & use</button>
+      </div>
+    </dialog>
+    <dialog id="help-dialog">
+      <h2>GAZEAIDE · Standalone</h2>
+      <p>
+        1. Try Mouse proxy and Follow my reading with Try sample conversation,
+        or open a local Codex session.<br />2. Review setup, start recording,
+        then move between code blocks.<br />3. Stop to inspect visits, replay
+        captured source and export results.
+      </p>
+      <p>
+        Find sessions → choose a local Codex conversation → Open session. Latest
+        answer and Next recorded diff navigate its output. Follow new output
+        refreshes it outside recording; during a recording, Refresh session
+        loads new content explicitly. Files & text also accepts non-code text.
+      </p>
+      <p>
+        If guided setup pauses for insufficient samples, adjust front
+        lighting/seating and click Retry this target. Earlier targets remain
+        while the guide is open. Do not reload or close the guide to retry; that
+        discards the unfinished run. Save appears only after every target is
+        collected.
+      </p>
+      <p>
+        For webcam tracking, connect the camera explicitly, then calibrate and
+        inspect the five independent check targets. Save a calibration only
+        after reviewing its errors. Recalibrate after moving or resizing the
+        window. Personalization selects a filtering preset from six training
+        targets and checks it on four fresh targets; it does not learn reading
+        speed.
+      </p>
+      <p>
+        Gaze-assisted review prepares bounded code context after three seconds
+        in a block. Choose Explain, Compare, or Review. Open the context, edit
+        it and Send to Codex. Codex requires a working local CLI sign-in. Camera
+        input stays local; explicitly sent prompts go through Codex. Pinned
+        webcam runtime dependencies need network access.
+      </p>
+      <p>
+        Pause stops attribution while keeping the camera on. Stop camera
+        releases it, pauses attribution and selects Mouse proxy. Stopped
+        sessions save locally. Walkthrough notes and review marks persist with
+        the session. Trace annotations/pruning affect exported reports only.
+        JSON schema 3 keeps original viewing visits.
+      </p>
+      <p>
+        This is a research prototype. Webcam samples are estimates; mouse modes
+        are proxies. Neither exposure nor dwell measures comprehension or
+        completed review. No hardware-accuracy or research-benefit claim is
+        made.
+      </p>
+      <button id="close-help">Close</button>
+    </dialog>
+  </body>
+</html>

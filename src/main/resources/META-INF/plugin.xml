@@ -1,0 +1,149 @@
+<idea-plugin>
+    <id>io.github.gazehighlighter</id>
+    <name>Implicit: Gaze-Triggered AI Assistance for Code Review</name>
+    <version>1.0.0</version>
+    <vendor url="https://github.com/JetBrains-Research/GAZEAIDE">JetBrains Research</vendor>
+
+    <description><![CDATA[
+        Gaze-triggered AI assistance for code review in <b>IntelliJ IDEA</b> and other JetBrains
+        IDEs, inspired by the <a href="https://github.com/codegrits/CodeGRITS">CodeGRITS</a>
+        research toolkit.<br/><br/>
+        Open <b>Tools → Implicit Gaze → Open Gaze Research…</b> and follow
+        <b>Input → Scenario → Session → Start recording</b>. Create a labelled session or
+        reopen saved results. Setup stays paused until you start recording.<br/>
+        <ul>
+          <li><b>Mouse</b> — mouse dwell as a proxy for gaze (no hardware needed).</li>
+          <li><b>Webcam eye tracker</b> — estimated gaze from
+          <a href="https://github.com/wgnrto/uniteye">UnitEye</a>'s browser pipeline (webcam →
+          MediaPipe → EyeMU), run in a hidden embedded browser, smoothed and corrected with a
+          nine-target calibration and a five-target accuracy check. Fixed response presets stabilize code-line interaction; webcam precision still depends on the setup.</li>
+        </ul>
+        <b>Gaze cursor</b> — an optional blue gutter dot shows the accepted code-line target. Switch it on/off in Input or while recording; hidden by default.<br/>
+        <b>Personalization</b> — a guided target task selects a response preset and checks it on fresh targets. Save one IDE-user profile and reuse it across scenarios.<br/>
+        <b>Gaze-assisted review</b> — choose Explain, Compare or Review; context is prepared locally with quiet offers and a 30-second cooldown. Sending remains explicit in native AI Chat.<br/>
+        <b>Gaze-driven review:</b> stable block focus, reversible fading of viewed code,
+        matching-identifier highlights, recent-view context for AI explanations, and a
+        gaze-guided <b>Review walkthrough</b>: overview → files → code, with native AI Chat handoff, notes and user review marks. Tours use snapshots, not Git diffs.
+        <b>Replay Viewing Trace</b> separately shows the recorded chronological route.
+        Configure each feature under
+        <b>Settings → Tools → Implicit Gaze Features</b>. Pause gaze effects to reveal all code.<br/><br/>
+        <b>AI context ready</b> — a configurable dwell prepares a prompt locally.
+        Click <b>Ask JetBrains AI</b>, review the context, copy it and open the installed
+        JetBrains AI Chat. Paste and send there; choose AI Assistant or Junie Ask mode.
+        Responses stay in native chat. GAZEAIDE does not choose a model or send HTTP AI requests.<br/><br/>
+        <b>Record and export gaze sessions:</b> use the Experiment tab to start/stop recording.
+        Stopped sessions save locally for reopening. Export CSV, JSON, or a self-contained HTML heatmap/replay page to see
+        the estimated code-viewing path. Exposure does not establish understanding.<br/><br/>
+        <b>Optional remote study upload (experimental):</b> configure an HTTPS research receiver
+        or a Google Drive Apps Script receiver. Preview a reduced dataset, test with synthetic data,
+        and upload manually or after future recordings. Off by default; excludes source code and paths.
+        Requires separate testing and study-specific research, ethics and storage setup.<br/><br/>
+        GAZEAIDE research tool. Started by <b>Heidi Albarazi</b> during her internship at
+        <b>JetBrains Research</b>; subsequently updated by <b>Ilia Zaharov</b>.
+        Estimated exposure does not establish comprehension or review correctness.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="jcef-compat.xml">com.intellij.modules.jcef</depends>
+    <depends optional="true" config-file="codegrits-compat.xml">io.github.codegrits</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Gaze Research" anchor="right" icon="/icons/gazeResearch.svg"
+            factoryClass="io.github.gazehighlighter.GazeResearchToolWindowFactory"/>
+
+        <applicationService serviceImplementation="io.github.gazehighlighter.GazeFeatureSettings"/>
+        <applicationConfigurable parentId="tools" id="io.github.gazehighlighter.gaze.features"
+            displayName="Implicit Gaze Features" instance="io.github.gazehighlighter.GazeFeatureConfigurable"/>
+
+        <!-- Application service: gaze input source (mouse vs. webcam) -->
+        <applicationService
+            serviceImplementation="io.github.gazehighlighter.GazeInputSettings"/>
+
+        <!-- Application service: owns the embedded-browser UnitEye gaze pipeline -->
+        <applicationService
+            serviceImplementation="io.github.gazehighlighter.UniteyeGazeService"/>
+
+        <!-- Settings UI: Settings → Tools → Implicit Gaze (input source) -->
+        <applicationConfigurable
+            parentId="tools"
+            id="io.github.gazehighlighter.gaze.settings"
+            displayName="Implicit Gaze"
+            instance="io.github.gazehighlighter.GazeInputConfigurable"/>
+
+        <!-- Notifications for webcam tracker status / fallback -->
+        <notificationGroup
+            id="Implicit Gaze"
+            displayType="BALLOON"/>
+
+        <!-- Startup: attach editor listeners; camera and processing start explicitly -->
+        <postStartupActivity
+            implementation="io.github.gazehighlighter.GazeHighlighterStartupActivity"/>
+
+        <!-- Project service: owns the current gaze mode -->
+        <projectService
+            serviceImplementation="io.github.gazehighlighter.GazeModeService"/>
+
+        <!-- Project service: per-editor gaze engines + screen→line routing -->
+        <projectService
+            serviceImplementation="io.github.gazehighlighter.GazeDispatcher"/>
+
+        <!-- Project service: buffers GazeEvents while a recording session is active -->
+        <projectService
+            serviceImplementation="io.github.gazehighlighter.GazeRecordingService"/>
+
+        <!-- Status bar widget: ● GAZEAIDE: Reading / Explaining (+ ● REC indicator) -->
+        <statusBarWidgetFactory
+            id="Implicit"
+            implementation="io.github.gazehighlighter.GazeStatusBarWidgetFactory"
+            order="first"/>
+
+    </extensions>
+
+    <actions>
+        <group id="io.github.gazehighlighter.RecordingGroup" text="Implicit Gaze"
+               description="Record and export gaze sessions" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="io.github.gazehighlighter.OpenResearch"
+                    class="io.github.gazehighlighter.OpenGazeResearchAction"
+                    text="Open Gaze Research…" description="Input setup, calibration, scenario presets, recording and results" icon="/icons/gazeResearch.svg"/>
+            <separator/>
+            <action id="io.github.gazehighlighter.PauseEffects"
+                    class="io.github.gazehighlighter.PauseGazeEffectsAction"
+                    text="Pause Gaze Processing (Reveal All)" description="Pause adaptations, explanations, and new recording events; camera remains active until switched to Mouse"/>
+            <action id="io.github.gazehighlighter.AskJetBrainsAI"
+                    class="io.github.gazehighlighter.AskJetBrainsAiAction"
+                    text="Ask JetBrains AI about Viewed Code…" description="Preview and copy gaze context, open native AI Chat, then paste and send there"/>
+            <action id="io.github.gazehighlighter.AgentRecords"
+                    class="io.github.gazehighlighter.GazeAgentRecordsAction"
+                    text="Agent Research Records…" description="Inspect local question/context records, add a transcribed answer or feedback, export JSONL"/>
+            <action id="io.github.gazehighlighter.ShowContext"
+                    class="io.github.gazehighlighter.ShowGazeContextAction"
+                    text="Inspect AI Context for Selected Session…" description="Inspect prepared or reconstructed context for the selected recording; nothing is sent"/>
+            <separator/>
+            <action id="io.github.gazehighlighter.StartRecording"
+                    class="io.github.gazehighlighter.StartGazeRecordingAction"
+                    text="Set Up Gaze Experiment…"
+                    description="Choose input, scenario and a new or saved session before recording"/>
+            <action id="io.github.gazehighlighter.StopRecording"
+                    class="io.github.gazehighlighter.StopGazeRecordingAction"
+                    text="Stop Gaze Recording"
+                    description="Stop the current gaze recording session"/>
+            <separator/>
+            <action id="io.github.gazehighlighter.ExportSession"
+                    class="io.github.gazehighlighter.ExportGazeSessionAction"
+                    text="Export Report…"
+                    description="Stop (if needed) and export the recorded gaze session as CSV, JSON, and an HTML heatmap/replay page"/>
+            <action id="io.github.gazehighlighter.ConfigureRemoteUpload"
+                    class="io.github.gazehighlighter.ConfigureGazeRemoteUploadAction"
+                    text="Configure Remote Study Upload…"
+                    description="Optional research data connector: reduced payload preview, synthetic test, upload and local retry queue"/>
+            <action id="io.github.gazehighlighter.ReadReport"
+                    class="io.github.gazehighlighter.ReadGazeSessionReportAction"
+                    text="Read Report"
+                    description="Stop (if needed) and show a summary of the recorded gaze session in the IDE"/>
+            <action id="io.github.gazehighlighter.BuildWalkthrough"
+                    class="io.github.gazehighlighter.BuildGazeWalkthroughAction"
+                    text="Replay Viewing Trace…" description="Stop recording if needed; create an editable route from recorded viewing"/>
+        </group>
+    </actions>
+</idea-plugin>

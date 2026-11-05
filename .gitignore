@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+.intellijPlatform/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+out/
+
+# OS
+.DS_Store
+
+# Secrets
+.env
+local.properties
+
+# Local research data and release output
+.local/
+artifacts/
+release/
+.env.*
+*.log
+*.sqlite
+*.sqlite3
+*.db
+.connection.json
+connection.json

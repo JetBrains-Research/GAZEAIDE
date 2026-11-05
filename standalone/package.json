@@ -1,0 +1,18 @@
+{
+  "name": "gazeaide-standalone",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GAZEAIDE standalone research companion with local webcam tracking and Codex integration",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "mcp": "node mcp.mjs",
+    "check": "node --check server.mjs && node --check public/app.mjs && node --check lib/core.mjs",
+    "package": "node build-release.mjs"
+  },
+  "license": "GPL-3.0-only"
+}
