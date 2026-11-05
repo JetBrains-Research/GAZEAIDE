@@ -38,8 +38,10 @@
         or a Google Drive Apps Script receiver. Preview a reduced dataset, test with synthetic data,
         and upload manually or after future recordings. Off by default; excludes source code and paths.
         Requires separate testing and study-specific research, ethics and storage setup.<br/><br/>
-        GAZEAIDE research tool. Started by <b>Heidi Albarazi</b> during her internship at
-        <b>JetBrains Research</b>; subsequently updated by <b>Ilia Zaharov</b>.
+        GAZEAIDE research tool. Started by <b><a href="https://heidialbarazi.me/">Heidi Albarazi</a></b> during her internship at
+        <b>JetBrains Research</b>; subsequently updated by <b>Ilia Zaharov</b>
+        (<a href="https://www.linkedin.com/in/ilya-m-zakharov/">LinkedIn</a>,
+        <a href="https://scholar.google.com/citations?user=MTOEI-oAAAAJ&amp;hl=en">Google Scholar</a>).
         Estimated exposure does not establish comprehension or review correctness.
     ]]></description>
 

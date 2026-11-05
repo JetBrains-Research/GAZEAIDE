@@ -13,5 +13,10 @@
   "thirdPartyNotices": [
     "src/main/resources/gaze/THIRD-PARTY-NOTICES.md",
     "standalone/THIRD-PARTY-NOTICES.md"
-  ]
+  ],
+  "originalAuthorWebsite": "https://heidialbarazi.me/",
+  "subsequentUpdaterProfiles": {
+    "linkedin": "https://www.linkedin.com/in/ilya-m-zakharov/",
+    "googleScholar": "https://scholar.google.com/citations?user=MTOEI-oAAAAJ&hl=en"
+  }
 }

@@ -11,7 +11,7 @@ Both provide viewing-driven visual scenarios, smoothing, calibration with retry,
 
 ## Project origin
 
-GAZEAIDE was started by **Heidi Albarazi** during her internship at **JetBrains Research**, and was subsequently updated by **Ilia Zaharov**. The project includes the original IntelliJ plugin and a standalone edition of the same research tool.
+GAZEAIDE was started by **[Heidi Albarazi](https://heidialbarazi.me/)** during her internship at **JetBrains Research**, and was subsequently updated by **Ilia Zaharov** ([LinkedIn](https://www.linkedin.com/in/ilya-m-zakharov/), [Google Scholar](https://scholar.google.com/citations?user=MTOEI-oAAAAJ&hl=en)). The project includes the original IntelliJ plugin and a standalone edition of the same research tool.
 
 ## First run without a camera or AI account
 

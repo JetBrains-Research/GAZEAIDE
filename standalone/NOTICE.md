@@ -2,8 +2,9 @@
 
 GAZEAIDE 1.0.0 project code: GNU General Public License, version 3 (GPL-3.0-only). The complete project license is included as LICENSE (or META-INF/LICENSE.txt in the plugin JAR).
 
-Started by Heidi Albarazi during her internship at JetBrains Research.
-Subsequently updated by Ilia Zaharov, including the standalone edition and
+Started by [Heidi Albarazi](https://heidialbarazi.me/) during her internship at JetBrains Research.
+Subsequently updated by Ilia Zaharov ([LinkedIn](https://www.linkedin.com/in/ilya-m-zakharov/),
+[Google Scholar](https://scholar.google.com/citations?user=MTOEI-oAAAAJ&hl=en)), including the standalone edition and
 research context, recording and interaction updates.
 
 Based on Heidi Albarazi's Implicit / GazeAIDE plugin:

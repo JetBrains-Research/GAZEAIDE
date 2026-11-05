@@ -4,7 +4,7 @@
 
 GAZEAIDE's project code is licensed under the **GNU General Public License, version 3 (GPL-3.0-only)**. See [LICENSE](LICENSE) for the complete terms.
 
-GAZEAIDE was started by **Heidi Albarazi** during her internship at **JetBrains Research**, and was subsequently updated by **Ilia Zaharov**. The project includes the original IntelliJ plugin and a standalone edition of the same research tool.
+GAZEAIDE was started by **[Heidi Albarazi](https://heidialbarazi.me/)** during her internship at **JetBrains Research**, and was subsequently updated by **Ilia Zaharov** ([LinkedIn](https://www.linkedin.com/in/ilya-m-zakharov/), [Google Scholar](https://scholar.google.com/citations?user=MTOEI-oAAAAJ&hl=en)). The project includes the original IntelliJ plugin and a standalone edition of the same research tool.
 
 The IntelliJ edition derives from [Heidi Albarazi's original Implicit / GazeAIDE plugin](https://github.com/wedalb/implicit-gaze-triggered-ai-assistance-for-code-review-in-the-jetbrains-ide), source base `83ca0e5ce9db9f48b21241fb0eb1132b574d67c1`. The standalone ports its domain/tracking workflow and replaces IntelliJ services/UI with a Node/browser/Codex host. Subsequent research UI, context, recording and recovery changes are described in [the changelog](CHANGELOG.md). Retain this attribution and the dependency notices when distributing copies.
 
