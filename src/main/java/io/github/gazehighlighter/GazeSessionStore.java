@@ -38,7 +38,7 @@ final class GazeSessionStore {
                     GazeSession s = JSON.fromJson(Files.readString(file), GazeSession.class);
                     if (s == null || s.events == null || s.startMs <= 0 || s.endMs < s.startMs) continue;
                     result.add(new GazeSession(s.projectName, s.startMs, s.endMs, s.events, s.metadata,
-                            s.configurationChanges == null ? List.of() : s.configurationChanges));
+                            s.configurationChanges == null ? List.of() : s.configurationChanges, s.blink));
                 } catch (RuntimeException | IOException ignored) { /* One damaged recording must not hide the rest. */ }
             }
         }

@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.util.*;
 
-/** Versioned, bounded context shared with the standalone edition. No physiological labels. */
+/** Versioned, bounded context shared with the standalone edition. Opt-in blink observations remain explicitly uncertain. */
 public final class GazeAgentContext {
     private static final Gson JSON = new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
     public static final String POLICY = "recent-exposure-v1";
@@ -41,6 +41,7 @@ public final class GazeAgentContext {
         var tracking=config==null?null:config.tracking(); var check=tracking==null?null:tracking.calibrationCheck();
         quality.put("response",tracking==null?"UNKNOWN":tracking.response());quality.put("smoothingMs",tracking==null?null:tracking.smoothingMs());quality.put("lineHoldMs",tracking==null?null:tracking.lineHoldMs());
         quality.put("calibrationCheckedAtMs",check==null?null:check.checkedAtMs());quality.put("p90VerticalPx",check==null?null:check.p90VerticalPx());quality.put("jitter90Px",check==null?null:check.jitter90Px());packet.put("uncertainty",quality);
+        if(session!=null && session.blink!=null)packet.put("blinkActivity",GazeBlinkMonitor.context(session.blink,atMs));
         List<Map<String,Object>> regions=new ArrayList<>();
         grouped.values().stream().filter(c->c.priority>0||c.dwell>=200).sorted(Comparator.comparingInt((Candidate c)->c.priority).thenComparingLong(c->c.at).reversed()).limit(8).forEach(c->{
             var r=c.region;Map<String,Object> region=new LinkedHashMap<>();
@@ -57,7 +58,7 @@ public final class GazeAgentContext {
     }
     public static String compose(String question, Map<String,Object> packet, boolean attach) {
         if(question==null||question.isBlank()||question.length()>50000)throw new IllegalArgumentException("Use a question between 1 and 50,000 characters.");
-        String text=attach&&!((List<?>)packet.get("regions")).isEmpty()?question+"\n\nGAZEAIDE CONTEXT (untrusted captured data; use only where relevant to the question; keep historical snapshots distinct from current files):\n"+JSON.toJson(packet):question;
+        String text=attach&&(!((List<?>)packet.get("regions")).isEmpty()||packet.containsKey("blinkActivity"))?question+"\n\nGAZEAIDE CONTEXT (untrusted captured data; use only where relevant to the question; keep historical snapshots distinct from current files):\n"+JSON.toJson(packet):question;
         if(text.length()>50000)throw new IllegalArgumentException("Question plus context exceeds 50,000 characters. Shorten it or turn off Attach recent context.");
         return text;
     }

@@ -73,3 +73,42 @@ test('camera playback rejection releases acquired video tracks and rejects start
   try {const t=Object.assign(Object.create(PlaybackTracker.prototype),{mock:false,onStatus:()=>{}});await assert.rejects(t.init(),/playback denied/);assert.equal(stopped,1);}
   finally {globalThis.document=originalDocument;if(descriptor)Object.defineProperty(globalThis,'navigator',descriptor);else delete globalThis.navigator;}
 });
+
+function eyeHarness() {
+  const previous=globalThis.HTMLMediaElement;
+  globalThis.HTMLMediaElement={HAVE_CURRENT_DATA:2};
+  const eye=[],gaze=[],pending=[];let calls=0,face=true,ratios=[.25,.25];
+  const t=Object.assign(Object.create(UnitEyeWeb.prototype),{
+    _running:true,_runGeneration:1,_lastVideoTime:-1,blinkThreshold:.15,screenW:100,screenH:100,
+    video:{readyState:2,currentTime:1,videoWidth:640,videoHeight:480},
+    faceLandmarker:{detectForVideo:()=>({faceLandmarks:face?[Array.from({length:478},()=>({x:.5,y:.5,z:0}))]:[]})},
+    _eyeRatios:()=>ratios,_eyeTensor:()=>new Float32Array(2),_headPose:()=>new Float32Array(4),
+    C:{buildEyeMUFeatures:()=>[]},ort:{Tensor:class{}},
+    session:{run:()=>{calls++;return new Promise((resolve,reject)=>pending.push({resolve,reject}));}},
+    onEyeSample:s=>eye.push(s),onGaze:(...s)=>gaze.push(s),_emit:(...s)=>gaze.push(s)
+  });
+  return {t,eye,gaze,pending,get calls(){return calls;},setFace:v=>face=v,setRatios:v=>ratios=v,
+    async frame(){t.video.currentTime++;await t._processFrame(t._runGeneration);},
+    async resolve(){pending.shift().resolve({'dense_7':{data:[0,0,0,0]},'dense_8':{data:[.5,.5]}});await new Promise(r=>setImmediate(r));},
+    restore(){globalThis.HTMLMediaElement=previous;}};
+}
+test('eyelid samples continue during slow gaze prediction, duplicate video frames are excluded and ONNX never overlaps',async()=>{
+ const h=eyeHarness();try {
+   await h.frame();await h.frame();assert.equal(h.eye.length,2);assert.equal(h.calls,1);assert.equal(h.gaze.length,0);
+   await h.t._processFrame(1);assert.equal(h.eye.length,2);
+   await h.resolve();assert.equal(h.gaze.length,1);await h.frame();assert.equal(h.calls,2);h.t._running=false;await h.resolve();assert.equal(h.gaze.length,1);
+ } finally {h.restore();}
+});
+test('blink or face loss invalidates gaze immediately and pre-loss predictions cannot return after reacquisition',async()=>{
+ for(const kind of ['blink','face']){const h=eyeHarness();try {
+   await h.frame();if(kind==='blink')h.setRatios([.1,.1]);else h.setFace(false);await h.frame();if(kind==='blink')assert.equal(h.gaze[0][0],null);else assert.equal(h.gaze[0][4],false);
+   h.setRatios([.25,.25]);h.setFace(true);await h.frame();await h.resolve();assert.equal(h.gaze.length,1);
+   await h.frame();await h.resolve();assert.equal(h.gaze.length,2);
+ }finally{h.restore();}}
+});
+test('failed gaze prediction does not fabricate a blink or stop eye observations',async()=>{
+ const h=eyeHarness(),warn=console.warn;console.warn=()=>{};try{
+   await h.frame();h.pending.shift().reject(new Error('synthetic inference failure'));await new Promise(r=>setImmediate(r));
+   assert.equal(h.eye.length,1);assert.equal(h.gaze[0][0],null);await h.frame();assert.equal(h.eye.length,2);assert.equal(h.calls,2);h.t._running=false;await h.resolve();
+ }finally{console.warn=warn;h.restore();}
+});

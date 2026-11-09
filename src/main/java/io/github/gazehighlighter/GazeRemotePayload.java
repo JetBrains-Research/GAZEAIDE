@@ -19,7 +19,7 @@ final class GazeRemotePayload {
         if (session.events.size() > MAX_EVENTS || session.configurationChanges.size() > MAX_CHANGES)
             throw new IllegalArgumentException("Recording exceeds this connector's event limit. Keep the local recording and revise the study upload design.");
         JsonObject out = base(connection, id, "session");
-        out.addProperty("pluginVersion", "1.0.0"); out.addProperty("taskCode", connection.taskCode());
+        out.addProperty("pluginVersion", "1.1.0"); out.addProperty("taskCode", connection.taskCode());
         out.addProperty("durationMs", session.durationMs());
         if (session.metadata != null) out.add("initialConfiguration", configuration(session.metadata.initialConfiguration()));
         JsonArray changes = new JsonArray();

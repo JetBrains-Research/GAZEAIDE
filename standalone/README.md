@@ -1,12 +1,16 @@
 # GAZEAIDE · Standalone
 
 A standalone edition of the same GAZEAIDE research tool as the IntelliJ plugin. It runs locally,
-without IntelliJ or Java, in a browser with its own conversation and text viewer. Version **1.0.0**, based on the
-IntelliJ plugin **1.0.0**. It uses the same UnitEye/EyeMU assets, scenario vocabulary,
+without IntelliJ or Java, in a browser with its own conversation and text viewer. Current source: **1.1.0** (unreleased), coordinated with
+the IntelliJ plugin **1.1.0**; latest published release: **1.0.0**. It uses the same UnitEye/EyeMU assets, scenario vocabulary,
 interaction timing and exposure-recording concepts. This is a working research prototype;
 automated and synthetic tests do not establish live gaze accuracy or research benefit.
 
 GAZEAIDE was started by **[Heidi Albarazi](https://heidialbarazi.me/)** during her internship at **JetBrains Research**, and was subsequently updated by **Ilia Zaharov** ([LinkedIn](https://www.linkedin.com/in/ilya-m-zakharov/), [Google Scholar](https://scholar.google.com/citations?user=MTOEI-oAAAAJ&hl=en)). The project includes the original IntelliJ plugin and a standalone edition of the same research tool.
+
+## Blink activity (1.1.0 development)
+
+Both editions now support opt-in blink observations and a longer-term personal rested reference. See the [step-by-step guide and measurement limits](docs/BLINK_ACTIVITY.md). The 1.0.0 release below predates this feature; build the current source for 1.1.0.
 
 ## Start
 

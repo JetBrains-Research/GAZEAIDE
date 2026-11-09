@@ -32,7 +32,7 @@ final class GazeResearchController implements GazeResearchPanel.Controller {
                 tracker.isTrackingValid(), input.isCalibrated(), GazeCalibrationDialog.isActive() || GazePersonalizationDialog.isActive(), recording.isRecording(),
                 GazeRecordingService.isAnyRecording(), recording.isRecording() ? recording.eventCount() : last == null ? 0 : last.events.size(),
                 recording.isRecording() ? Math.max(0, System.currentTimeMillis() - recording.getStartMs()) : last == null ? 0 : last.durationMs(),
-                last != null && !last.events.isEmpty(), recording.isLastSessionExported(), research.activeScenario(profile), profile,
+                last != null && (!last.events.isEmpty() || last.blink != null), recording.isLastSessionExported(), research.activeScenario(profile), profile,
                 !recording.isRecording() && last != null && last.metadata != null ? last.metadata.labels() : research.labels(), JetBrainsAiBridge.status(),
                 GazeModeService.getInstance(project).getTarget(), tracker.getStatusMessage());
     }
@@ -107,6 +107,13 @@ final class GazeResearchController implements GazeResearchPanel.Controller {
         return GazePersonalizationDialog.open(project);
     }
     @Override public GazeReviewPurpose reviewPurpose() { return GazeResearchSettings.getInstance(project).reviewPurpose(); }
+    @Override public boolean collectBlinks() { return GazeResearchSettings.getInstance(project).getState().collectBlinks; }
+    @Override public GazeBlinkMonitor.Config blinkConfig() { return GazeResearchSettings.getInstance(project).blinkConfig(); }
+    @Override public void setBlinkOptions(boolean enabled,GazeBlinkMonitor.Config c) {
+        if(configurationLocked())return;
+        var o=GazeResearchSettings.getInstance(project).getState();o.collectBlinks=enabled;o.blinkGroup=c.group();o.restedReference=c.reference();o.blinkSuggestions=c.suggestions();o.fatigueRating=c.fatigue()==null?-1:c.fatigue();o.effortRating=c.effort()==null?-1:c.effort();
+    }
+    @Override public String blinkStatus() { return GazeRecordingService.getInstance(project).blinkStatus(); }
     @Override public boolean quietOffers() { return GazeResearchSettings.getInstance(project).getState().quietOffers; }
     @Override public void setReviewOptions(GazeReviewPurpose purpose, boolean quiet) {
         if (configurationLocked()) return;
@@ -149,9 +156,16 @@ final class GazeResearchController implements GazeResearchPanel.Controller {
         if (currentInput() == GazeResearchPanel.Input.WEBCAM && !UniteyeGazeService.getInstance().isTrackingValid()) {
             GazeNotify.warn(project, "Wait for a valid webcam gaze sample before starting a session."); return false;
         }
+        if(collectBlinks() && currentInput() != GazeResearchPanel.Input.WEBCAM) {
+            GazeNotify.warn(project,"Blink collection requires a real webcam.");return false;
+        }
+        if(collectBlinks() && !GazeSessionLibrary.getInstance(project).loaded()) {
+            GazeNotify.warn(project,"Wait for saved recordings to load before building a personal reference.");return false;
+        }
         GazeResearchSettings.getInstance(project).setLabels(labels);
         setPaused(false);
         rec.start();
+        var eyeOptions=GazeResearchSettings.getInstance(project).getState();eyeOptions.restedReference=false;eyeOptions.fatigueRating=eyeOptions.effortRating=-1;
         GazeReviewTourService.getInstance(project).beginSession(rec.getStartMs(), labels.task(),
                 GazeResearchSettings.getInstance(project).activeScenario(GazeFeatureProfile.from(GazeFeatureSettings.getInstance().getState())) == GazeScenario.WALKTHROUGH);
         return true;

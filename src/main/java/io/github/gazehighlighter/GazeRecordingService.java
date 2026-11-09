@@ -27,6 +27,7 @@ public final class GazeRecordingService {
     private final List<GazeEvent> events = new ArrayList<>();
     private final List<GazeSession.ConfigurationChange> configurationChanges = new ArrayList<>();
     private GazeSessionMetadata metadata;
+    private GazeBlinkMonitor blinkMonitor;
     private GazeRemoteConnection remoteAtStart;
     private volatile boolean lastSessionExported;
 
@@ -54,6 +55,10 @@ public final class GazeRecordingService {
         metadata = GazeResearchController.captureMetadata(project);
         remoteAtStart = GazeRemoteUploadService.getInstance(project).automaticAtStart();
         startMs   = System.currentTimeMillis();
+        var research=GazeResearchSettings.getInstance(project);
+        var blinkConfig=research.blinkConfig();
+        blinkMonitor=research.getState().collectBlinks && GazeResearchController.currentInput()==GazeResearchPanel.Input.WEBCAM
+                ? new GazeBlinkMonitor(startMs,blinkConfig,GazeBlinkMonitor.reference(GazeSessionLibrary.getInstance(project).sessions(),blinkConfig,startMs)) : null;
         GazeContextService.getInstance(project).beginSession();
         recording = true;
         configurationChanged();
@@ -65,8 +70,9 @@ public final class GazeRecordingService {
         if (!recording && lastSession != null) return lastSession;
         if (recording) GazeDispatcher.getInstance(project).recordingBoundary();
         recording = false;
+        if(blinkMonitor!=null)blinkMonitor.interrupt(System.currentTimeMillis(),"recording_stopped");
         GazeSession session = new GazeSession(project.getName(), startMs,
-                System.currentTimeMillis(), new ArrayList<>(events), metadata, configurationChanges);
+                System.currentTimeMillis(), new ArrayList<>(events), metadata, configurationChanges, blinkMonitor==null?null:blinkMonitor.snapshot(System.currentTimeMillis()));
         lastSession = session;
         lastSessionExported = false;
         GazeSessionLibrary.getInstance(project).save(session);
@@ -107,6 +113,7 @@ public final class GazeRecordingService {
         if (!recording) return;
         var config = GazeResearchController.captureMetadata(project).initialConfiguration();
         boolean paused = GazeFeatureSettings.getInstance().getState().paused;
+        if(paused && blinkMonitor!=null)blinkMonitor.interrupt(System.currentTimeMillis(),"paused");
         var previous = configurationChanges.isEmpty() ? null : configurationChanges.get(configurationChanges.size() - 1);
         if (previous == null || previous.paused() != paused || !previous.configuration().equals(config))
             configurationChanges.add(new GazeSession.ConfigurationChange(Math.max(0, System.currentTimeMillis() - startMs), paused, config));
@@ -157,7 +164,7 @@ public final class GazeRecordingService {
     /** Current completed visits, or the selected stopped recording; never stops recording. */
     synchronized @Nullable GazeSession contextSnapshot() {
         return recording ? new GazeSession(project.getName(), startMs, System.currentTimeMillis(),
-                events, metadata, configurationChanges) : lastSession;
+                events, metadata, configurationChanges, blinkMonitor==null?null:blinkMonitor.snapshot(System.currentTimeMillis())) : lastSession;
     }
 
     // ── Recording ────────────────────────────────────────────────────────────────
@@ -165,6 +172,18 @@ public final class GazeRecordingService {
     synchronized void record(GazeEvent event) {
         if (recording) events.add(event);
     }
+
+    static void eyeSampleForOpenProjects(long at,double left,double right,boolean face) {
+        for(Project p:ProjectManager.getInstance().getOpenProjects()) if(!p.isDisposed()) {
+            var rec=getInstance(p);if(!rec.recording||rec.blinkMonitor==null)continue;
+            var frame=com.intellij.openapi.wm.WindowManager.getInstance().getFrame(p);
+            synchronized(rec) {
+                if(GazeFeatureSettings.getInstance().getState().paused||frame==null||!frame.isActive())rec.blinkMonitor.interrupt(at,"paused_or_unfocused");
+                else rec.blinkMonitor.sample(at,left,right,face);
+            }
+        }
+    }
+    String blinkStatus() {var s=contextSnapshot();return GazeBlinkMonitor.status(s==null?null:s.blink);}
 
     // ── Widget hookup ────────────────────────────────────────────────────────────
 

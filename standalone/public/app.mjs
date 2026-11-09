@@ -20,6 +20,7 @@ import {
   csv,
   escape,
 } from "/lib/core.mjs";
+import { BlinkMonitor, blinkConfig, blinkStatus, blinkCsv } from "/lib/blinks.mjs";
 import { reduced, reportHtml } from "/lib/research.mjs";
 import { targetQuality, runGuideTargets } from "/lib/guide.mjs";
 import { buildAgentContext, composeAgentRequest } from "/lib/agent-context.mjs";
@@ -49,6 +50,7 @@ const action = (id, fn) =>
   );
 let config,
   prefs = {},
+  blinkMonitor = null,
   file,
   files = [],
   opened = new Map(),
@@ -169,6 +171,10 @@ const compatible = () =>
 async function savePrefs() {
   await api("preferences", prefs);
 }
+function eyeConfig() {
+  return blinkConfig({participant:$("participant").value, group:$("blink-group").value, reference:$("blink-reference").checked, fatigue:Number($("blink-fatigue").value), effort:Number($("blink-effort").value), suggestions:$("blink-suggestions").checked});
+}
+function interruptBlinks(reason) { if(recording) blinkMonitor?.interrupt(Date.now(),reason); }
 function configuration() {
   const o = getOptions(),
     kind = input(),
@@ -255,6 +261,7 @@ for (const [k, title] of Object.entries({
 }
 $("scenario").value = "FOCUS";
 $("scenario").addEventListener("change", () => {
+  $("blink-enable").checked = $("scenario").value === "BLINK_BASELINE";
   if ($("scenario").value !== "CUSTOM")
     for (const k of ["stableMs", "fadeAfterMs", "explainAfterMs"])
       $(k).value = features($("scenario").value)[k];
@@ -595,9 +602,9 @@ function suspend() {
   lineTarget.reset();
   renderEffects();
 }
-window.addEventListener("blur", suspend);
+window.addEventListener("blur", () => { suspend(); interruptBlinks("window_unfocused"); });
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) suspend();
+  if (document.hidden) { suspend(); interruptBlinks("page_hidden"); }
 });
 $("code-scroll").addEventListener("scroll", suspend, { passive: true });
 async function connectCamera() {
@@ -617,6 +624,11 @@ async function connectCamera() {
       modelUrl: "/vendor/models/eyemu.onnx",
       onStatus: (stage) => {
         $("camera-status").textContent = "Starting: " + stage;
+      },
+      onEyeSample: ({atMs,left,right,face}) => {
+        if(generation !== cameraGeneration || !recording || !blinkMonitor) return;
+        if(paused || document.hidden || !document.hasFocus() || document.querySelector("dialog[open]")) interruptBlinks("paused_or_unfocused");
+        else blinkMonitor.sample(atMs,left,right,face);
       },
       onGaze: (_final, raw, blink, face) => {
         if (generation !== cameraGeneration) return;
@@ -713,6 +725,7 @@ async function connectCamera() {
 }
 action("camera", connectCamera);
 function stopCamera() {
+  interruptBlinks("camera_stopped");
   cancelGuide();
   if ($("guide").open) $("guide").close();
   ++cameraGeneration;
@@ -748,6 +761,7 @@ function snapshotSession() {
     s.durationMs = s.endMs - s.startMs;
     s.inProgress = true;
   }
+  if (recording && blinkMonitor) s.blink = blinkMonitor.snapshot(s.endMs);
   s.walkthrough = structuredClone(steps);
   return s;
 }
@@ -772,6 +786,7 @@ function updateRecordingControls() {
   $("import-session").disabled = recording;
 }
 action("record", () => {
+  if($("blink-enable").checked && input() !== "WEBCAM") throw new Error("Blink collection requires a real webcam. Choose Webcam and connect it first.");
   if (
     input() === "WEBCAM" &&
     (!tracker || !compatible() || now() - lastRaw > 1000)
@@ -786,6 +801,7 @@ action("record", () => {
       participant: $("participant").value,
       task: $("task").value,
       condition: $("condition").value,
+      blink: $("blink-enable").checked ? eyeConfig() : "off",
       features: getOptions(),
       question: $("purpose").value,
     },
@@ -795,10 +811,17 @@ action("record", () => {
   $("review-dialog").showModal();
 });
 action("cancel-start", () => $("review-dialog").close());
-action("confirm-start", () => {
+action("confirm-start", async () => {
+  const collect = $("blink-enable").checked, eye = eyeConfig();
+  if(collect && (input() !== "WEBCAM" || !tracker)) throw new Error("Connect a real webcam before collecting blinks.");
+  $("confirm-start").disabled = true;
+  let reference;
+  try { if(collect) reference = await api("blink-reference", eye); }
+  finally { $("confirm-start").disabled = false; }
   $("review-dialog").close();
   clockStart = now();
   epochStart = Date.now();
+  blinkMonitor = collect ? new BlinkMonitor({startMs:epochStart,config:eye,reference}) : null;
   engine.reset(clockStart);
   recording = true;
   paused = false;
@@ -813,8 +836,8 @@ action("confirm-start", () => {
     id: `${epochStart}-${crypto.randomUUID().slice(0, 8)}`,
     schemaVersion: 3,
     edition: "standalone",
-    editionVersion: "1.0.0",
-    pluginCompatibilityVersion: "1.0.0",
+    editionVersion: "1.1.0",
+    pluginCompatibilityVersion: "1.1.0",
     project: config.project,
     startMs: epochStart,
     endMs: epochStart,
@@ -842,6 +865,7 @@ action("confirm-start", () => {
   publish();
 });
 action("pause", () => {
+  interruptBlinks("pause_boundary");
   suspend();
   if (paused && input() === "WEBCAM" && (!compatible() || !tracker))
     throw new Error(
@@ -858,11 +882,13 @@ action("stop", async () => {
   session.endMs = Math.round(epochStart + t - clockStart);
   session.durationMs = session.endMs - session.startMs;
   session.inProgress = false;
+  if(blinkMonitor) { blinkMonitor.interrupt(session.endMs,"recording_stopped"); session.blink = blinkMonitor.snapshot(session.endMs); }
   recording = false;
   paused = true;
   session.walkthrough = structuredClone(steps);
   await persistSession(session);
   selected = session;
+  $("blink-reference").checked=false;$("blink-fatigue").value=-1;$("blink-effort").value=-1;
   updateRecordingControls();
   await library();
   showResults();
@@ -1726,6 +1752,8 @@ function showResults() {
   if (!s) return;
   $("result-summary").textContent =
     `${s.events.length} line visits · ${(s.durationMs / 1000).toFixed(1)} s session duration · ${(s.events.reduce((n, e) => n + e.dwellMs, 0) / 1000).toFixed(1)} s exposure${s.inProgress ? " · recovered/in-progress checkpoint" : ""}`;
+  $("blink-results").textContent = blinkStatus(s.blink);
+  $("export-blinks").disabled = !s.blink;
   $("replay").max = Math.max(0, trace().length - 1);
   showReplay();
   const totals = new Map();
@@ -1934,7 +1962,9 @@ function publish() {
   };
   sharedWrite = sharedWrite.catch(() => {}).then(() => api("shared", body));
 }
+action("export-blinks", () => { const s=resultSession(); if(s?.blink) download("gazeaide-blinks.csv","text/csv",blinkCsv(s.blink)); });
 function uiTick() {
+  $("blink-live").textContent = blinkStatus(recording && blinkMonitor ? blinkMonitor.snapshot(Date.now()) : session?.blink);
   const t = now(),
     foreground =
       !document.hidden &&

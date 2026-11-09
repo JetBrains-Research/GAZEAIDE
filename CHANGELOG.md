@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — unreleased
+
+- Add opt-in webcam blink events, minute windows and quality flags in both editions.
+- Add Personal baseline & blink activity with saved rested-reference recordings, participant/camera isolation, optional separate fatigue/effort ratings and an experimental closure-deviation indicator.
+- Add local JSON/blink CSV/report exports and bounded explicit-send context summaries. Reduced remote uploads continue to exclude blink observations and self-reports.
+- Observe eyelids independently of pending gaze predictions; cancel interrupted closures and reject pre-loss gaze results. No automatic adaptation or extra AI requests.
+- See [blink measurements and limits](docs/BLINK_ACTIVITY.md) for the detector policy, novice workflow, privacy and validation requirements.
+
 ## 1.0.0 — 2026-11-05
 
 First coordinated GAZEAIDE research release of the IntelliJ and standalone editions. This snapshot follows plugin 0.11.1 and standalone 0.3.1; the 1.0 promotion changes release metadata and documentation rather than adding a new tracking algorithm.

@@ -5,7 +5,7 @@ The optional **Webcam eye tracker** input source bundles code and a model from
 its standalone browser pipeline (`webgl/uniteye-core.js`, `webgl/uniteye-cv.js`,
 `webgl/models/eyemu.onnx`), vendored under `public/vendor/`. The browser adapter
 `uniteye-cv.js` contains local changes for scheduling, raw-coordinate routing,
-startup progress, frame validity and camera playback failure handling. The core
+startup progress, frame validity, camera playback failure handling, bilateral eyelid observations and separate face/gaze scheduling. The core
 and model are retained from the vendored source; this is not an unmodified distribution.
 
 | File | Source | License |

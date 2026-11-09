@@ -22,3 +22,7 @@ Viewing, recording, previewing and exporting alone do not trigger a model reques
 Never commit `.local/`, connection files, credentials, `.env` files, participant recordings or exported research examples. A custom `--data` folder should be outside source control. `.gitignore` protects common paths but cannot recognize every custom export. Review staged files and Git history before publication; deleting a file from the latest commit does not erase its earlier versions.
 
 Bundled examples and test fixtures are synthetic. Review your own recordings, exports and configuration before sharing them.
+
+## Optional blink observations (1.1)
+
+Enabled recordings store blink/closure events, timing bounds, minute-window metrics, quality flags, participant/camera group, optional start fatigue/effort ratings and a frozen personal reference. No video, images, raw landmarks or continuous eye-ratio samples are saved. These are personal behavioral data. References are derived from earlier explicitly rested local recordings. Explicit AI sends with context attached may include bounded blink summaries and self-ratings; previews and attachment opt-out still apply. The reduced remote study-upload payload excludes these fields. See [blink activity](docs/BLINK_ACTIVITY.md) for controls, interpretation limits and retention.

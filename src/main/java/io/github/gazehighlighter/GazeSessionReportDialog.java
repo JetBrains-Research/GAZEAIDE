@@ -78,6 +78,7 @@ public class GazeSessionReportDialog extends DialogWrapper {
                                 .atZone(java.time.ZoneId.systemDefault()))));
         root.add(vgap(14));
         root.add(statsGrid());
+        if(session.blink!=null)root.add(GazeResearchPanel.help(GazeBlinkMonitor.status(session.blink),5));
 
         long distinctFiles = session.events.stream().map(e -> e.filePath).distinct().count();
         root.add(vgap(10));

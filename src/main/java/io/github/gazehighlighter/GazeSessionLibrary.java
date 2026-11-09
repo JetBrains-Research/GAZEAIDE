@@ -14,6 +14,8 @@ public final class GazeSessionLibrary {
     private final GazeSessionStore store;
     private final Path directory;
     private volatile List<GazeSession> sessions = List.of();
+    private volatile boolean loaded;
+    public boolean loaded() { return loaded; }
     private volatile String status = "Loading saved sessions…";
     public GazeSessionLibrary(Project project) {
         this.project = project;
@@ -31,7 +33,8 @@ public final class GazeSessionLibrary {
                     status = "Recordings are saved locally in the IDE system folder.";
                 }
             }
-            catch (Exception e) { status = "Saved sessions could not be loaded. New recordings can still be exported."; }
+            catch (Exception e) { status = "Saved sessions could not be loaded. Restart the IDE before building blink references; other recordings can still be exported."; }
+            finally { loaded = !status.startsWith("Saved sessions could not"); }
         });
     }
     public static GazeSessionLibrary getInstance(Project p) { return p.getService(GazeSessionLibrary.class); }

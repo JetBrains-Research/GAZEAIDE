@@ -23,6 +23,9 @@ public enum GazeScenario {
     WALKTHROUGH("Gaze-guided review walkthrough", "Explore an overview, files and code steps. Gaze selects the step to discuss.",
             "Open the files to review, then start recording and Open review walkthrough. Look at code to select a step, inspect its snapshot, and add notes or mark it reviewed yourself. Ask JetBrains AI is optional. Back to experiment returns to recording controls.",
             false, false, false, false, false),
+    BLINK_BASELINE("Personal baseline & blink activity", "Record longer-term viewing and blink activity without adapting the interface.",
+            "Use a real webcam and your participant/reference group. Read normally for several minutes. Only mark a recording as a rested reference when appropriate. Three usable minute windows and ten blinks build a reference for later recordings. The display is an exploratory closure-deviation indicator, not cognitive load or a diagnosis.",
+            false, false, false, false, false),
     OBSERVE("Record viewing only", "Collect a baseline without visual adaptation or AI requests.",
             "Continue to Session, then Start recording and read code normally. Stop to inspect or export the viewing path. No code highlighting, fading or AI-context preparation runs. Viewed code is not automatically considered reviewed.",
             false, false, false, false, false),
@@ -47,6 +50,7 @@ public enum GazeScenario {
             case RELATIONSHIPS -> "Read within a block for 3 seconds to prepare a question. Compare needs two viewed blocks within 45 seconds. Open an offer or preview the captured context below; send in native AI Chat when ready.";
             case WALKTHROUGH -> "Open review walkthrough below. Look at code to select a step; add your notes and review marks there. Back to experiment returns here.";
             case OBSERVE -> "Read code normally. Only viewing visits are recorded; no visual effects or AI preparation run. Stop recording above to see results.";
+            case BLINK_BASELINE -> "Read normally for several minutes. Blink events and minute windows save locally. Keep the same participant and camera reference group across recordings; only rested reference recordings update the baseline.";
             case CUSTOM -> "Your selected feature switches are active. Stop recording before changing the setup. The Viewing report and exports will show the recorded visits.";
             case PERSONALIZATION -> "The guided setup task saves a response profile. Choose another scenario to record code viewing with it.";
         };

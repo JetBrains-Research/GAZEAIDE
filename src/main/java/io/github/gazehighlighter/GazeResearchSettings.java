@@ -12,6 +12,9 @@ public final class GazeResearchSettings implements PersistentStateComponent<Gaze
         public String participant = "", task = "", condition = "", scenario = GazeScenario.CUSTOM.name();
         public String reviewPurpose = GazeReviewPurpose.COMPARE.name();
         public boolean quietOffers = true;
+        public boolean collectBlinks, restedReference, blinkSuggestions;
+        public String blinkGroup = "default-camera";
+        public int fatigueRating = -1, effortRating = -1;
     }
     private Options options = new Options();
     public static GazeResearchSettings getInstance(Project project) { return project.getService(GazeResearchSettings.class); }
@@ -22,6 +25,7 @@ public final class GazeResearchSettings implements PersistentStateComponent<Gaze
         options.participant = labels.participant(); options.task = labels.task(); options.condition = labels.condition();
     }
     public GazeReviewPurpose reviewPurpose() { return GazeReviewPurpose.from(options.reviewPurpose); }
+    GazeBlinkMonitor.Config blinkConfig() { return new GazeBlinkMonitor.Config(options.participant,options.blinkGroup,options.restedReference,options.fatigueRating,options.effortRating,options.blinkSuggestions); }
     public GazeScenario activeScenario(GazeFeatureProfile profile) {
         GazeScenario selected = GazeScenario.from(options.scenario);
         return selected != GazeScenario.CUSTOM && selected.profile().equals(profile) ? selected : GazeScenario.CUSTOM;

@@ -51,6 +51,10 @@ public final class GazeResearchPanel extends JPanel {
         default String personalProfileSummary() { return "No personal profile yet. Choose Personalization to create one for all scenarios."; }
         default boolean personalize(GazeSessionMetadata.Labels labels) { return false; }
         default GazeReviewPurpose reviewPurpose() { return GazeReviewPurpose.COMPARE; }
+        default boolean collectBlinks() { return false; }
+        default GazeBlinkMonitor.Config blinkConfig() { return new GazeBlinkMonitor.Config("","",false,null,null,false); }
+        default void setBlinkOptions(boolean enabled,GazeBlinkMonitor.Config config) {}
+        default String blinkStatus() { return GazeBlinkMonitor.status(null); }
         default boolean quietOffers() { return true; }
         default void setReviewOptions(GazeReviewPurpose purpose, boolean quiet) {}
         default String offerStatus() { return ""; }
@@ -103,6 +107,10 @@ public final class GazeResearchPanel extends JPanel {
     private final JSpinner stable = spinner(500, 200, 2000, 100, "stable-ms");
     private final JSpinner fadeAfter = spinner(1500, 500, 30000, 500, "fade-ms");
     private final JSpinner explainAfter = spinner(3000, 1000, 15000, 500, "explain-ms");
+    private final JCheckBox blinkEnable = check("Collect webcam blink observations", "blink-enable"), blinkReference = check("Rested reference recording", "blink-reference"), blinkSuggestions = check("Show optional break suggestion", "blink-suggestions");
+    private final JTextField blinkGroup = field("blink-group");
+    private final JSpinner blinkFatigue = spinner(-1,-1,10,1,"blink-fatigue"), blinkEffort = spinner(-1,-1,10,1,"blink-effort");
+    private final JTextArea blinkLive = help("",5), blinkResult = help("",5);
     private final JTextField participant = field("participant"), task = field("task"), condition = field("condition");
     private final JPanel features = column(), aiSetup = column(), labels = column();
     private final JTextArea provider = help("", 2);
@@ -149,11 +157,13 @@ public final class GazeResearchPanel extends JPanel {
         liveCursor.addActionListener(e -> run(() -> controller.setShowCursor(liveCursor.isSelected())));
         if (!s.recording && !s.configurationLocked) controller.setPaused(true);
         input.setSelectedItem(s.input); scenario.setSelectedItem(s.scenario);
+        var eye=controller.blinkConfig();blinkEnable.setSelected(controller.collectBlinks() || s.scenario == GazeScenario.BLINK_BASELINE);blinkGroup.setText(eye.group());blinkReference.setSelected(eye.reference());blinkSuggestions.setSelected(eye.suggestions());
+        blinkFatigue.setValue(eye.fatigue()==null?-1:eye.fatigue());blinkEffort.setValue(eye.effort()==null?-1:eye.effort());
         participant.setText(s.labels.participant()); task.setText(s.labels.task()); condition.setText(s.labels.condition());
         loadProfile(s.scenario == GazeScenario.CUSTOM ? s.features : s.scenario.profile()); updateScenario();
         input.addActionListener(e -> { if (!loading) { inputCommitted = false; scenarioCommitted = false; refresh(); } });
         scenario.addActionListener(e -> {
-            if (!loading) { scenarioCommitted = false; if (selectedScenario() != GazeScenario.CUSTOM) loadProfile(selectedScenario().profile()); updateScenario(); refresh(); }
+            if (!loading) { blinkEnable.setSelected(selectedScenario() == GazeScenario.BLINK_BASELINE); scenarioCommitted = false; if (selectedScenario() != GazeScenario.CUSTOM) loadProfile(selectedScenario().profile()); updateScenario(); refresh(); }
         });
         sessions.addActionListener(e -> { if (!loading) refresh(); });
         for (JCheckBox box : List.of(focus, fade, names, history, ai)) box.addActionListener(e -> { if (!loading) { scenarioCommitted = false; refresh(); } });
@@ -196,6 +206,9 @@ public final class GazeResearchPanel extends JPanel {
         JPanel body = column(); body.add(heading("3. Choose session")); body.add(help("A session is one recording for a task. Create a new one, or reopen a saved recording to see its results.", 2)); body.add(sessions);
         labels.add(form("Participant ID", participant)); labels.add(form("Task / review goal", task)); labels.add(form("Condition", condition));
         labels.add(help("All fields are optional. Use a participant code. Next shows the setup summary before recording.", 3)); body.add(labels);
+        body.add(blinkEnable);body.add(form("Camera/reference group",blinkGroup));body.add(blinkReference);
+        body.add(form("Fatigue (0–10; −1 unreported)",blinkFatigue));body.add(form("Effort (0–10; −1 unreported)",blinkEffort));body.add(blinkSuggestions);
+        body.add(help("Use the same participant code and camera group across recordings; blank participant means local-user. Change group when the setup changes. Only explicitly rested recordings build the reference. At least 3 usable minute windows and 10 blinks are needed for later recordings. No video is saved. Blink summaries enter explicit AI prompt previews when context is attached.",6));
         body.add(storage);
         body.add(sessionPersonal); body.add(sessionProfileHint);
         body.add(help("Saved sessions open their results without recording again. Full recordings contain source snapshots and save locally. Optional remote upload sends a separate reduced dataset.", 3));
@@ -211,7 +224,7 @@ public final class GazeResearchPanel extends JPanel {
     private JPanel recordingPage() {
         JPanel body = column(); body.add(heading("Recording")); body.add(live); body.add(liveCursor); body.add(row(pause, stopCamera));
         recordingInstructions.setName("recording-instructions"); body.add(recordingInstructions);
-        body.add(remoteLive);
+        blinkLive.setName("blink-live"); body.add(blinkLive); body.add(remoteLive);
         liveAi.setName("live-ai-controls"); contextStatus.setName("context-status"); liveAi.add(contextStatus);
         offerBox.setName("assistance-offer"); offerBox.setBorder(BorderFactory.createTitledBorder("Assistance available"));
         offerText.setName("offer-text"); offerBox.add(offerText);
@@ -229,6 +242,7 @@ public final class GazeResearchPanel extends JPanel {
     }
     private JPanel resultsPage() {
         JPanel body = column(); body.add(heading("Session results")); body.add(result); body.add(row(report, export));
+        blinkResult.setName("blink-results");body.add(blinkResult);
         remoteResult.setName("remote-results-status"); body.add(remoteResult);
         body.add(action("Remote upload: preview, send or configure…", "remote-results", Action.REMOTE));
         body.add(walkthrough); body.add(help("Review walkthrough: overview → files → code, with notes and explicit review marks. Gaze selects code; Ask JetBrains AI opens a prompt preview, then native AI Chat.", 4));
@@ -245,7 +259,7 @@ public final class GazeResearchPanel extends JPanel {
         if (inputCommitted && s.input != input.getSelectedItem()) inputCommitted = false;
         if (scenarioCommitted && !s.features.equals(selectedScenario() == GazeScenario.CUSTOM ? profile() : selectedScenario().profile())) scenarioCommitted = false;
         if (s.recording) { step = Step.RECORDING; wasRecording = true; }
-        else if (wasRecording) { step = Step.RESULTS; wasRecording = false; }
+        else if (wasRecording) { step = Step.RESULTS; wasRecording = false; resetBlinkRatings(); }
         cards.show(pages, step.name());
         progress.setText(switch (step) {
             case INPUT -> "1 Input → 2 Scenario → 3 Session → 4 Record";
@@ -303,6 +317,8 @@ public final class GazeResearchPanel extends JPanel {
         restart.setEnabled(!s.configurationLocked && s.input != Input.MOUSE && !s.calibrating);
         restart.setVisible(input.getSelectedItem() != Input.MOUSE);
         input.setEnabled(!s.configurationLocked); scenario.setEnabled(!s.configurationLocked);
+        for(JComponent c:List.of(blinkEnable,blinkReference,blinkSuggestions,blinkGroup,blinkFatigue,blinkEffort)) c.setEnabled(!s.configurationLocked);
+        blinkLive.setText(controller.blinkStatus());blinkResult.setText(controller.blinkStatus());
         purpose.setEnabled(!s.configurationLocked); quietOffers.setEnabled(!s.configurationLocked);
         provider.setText(s.aiProvider); provider.setToolTipText(s.aiProvider);
         List<SavedSession> available = controller.savedSessions();
@@ -324,6 +340,7 @@ public final class GazeResearchPanel extends JPanel {
                 : "Start recording starts viewing effects and recording together. Return to the code editor, then follow your scenario's instructions. Setup time is excluded.");
         summary.setText("Input: " + s.input.title + (s.input == Input.WEBCAM ? "\nResponse: " + (controller.usesPersonalProfile() ? "Personal profile" : "Standard · " + controller.response()) + "\n" + controller.calibrationSummary() : "")
                 + "\nGaze cursor: " + (controller.showCursor() ? "visible" : "hidden") + "\nScenario: " + s.scenario.title + "\nParticipant: " + label(participant.getText())
+                + "\nBlink collection: " + (blinkEnable.isSelected() ? "on · " + blinkGroup.getText() + (blinkReference.isSelected() ? " · rested reference" : "") : "off")
                 + "\nTask: " + label(task.getText()) + "\nCondition: " + label(condition.getText()) + "\nAI: " + (s.features.explanations() ? controller.reviewPurpose().title + "; automatic context; " + (controller.quietOffers() ? "quiet offers" : "offers off") + "; send manually in native chat · " + s.aiProvider
                 : s.scenario == GazeScenario.WALKTHROUGH ? "On request in JetBrains AI Chat · " + s.aiProvider : "No context prepared automatically"));
         live.setText(s.eventCount + " recorded code-line visits\n" + s.target + "\nInput: " + s.input.title
@@ -351,8 +368,8 @@ public final class GazeResearchPanel extends JPanel {
         });
         next.setEnabled(step == Step.RECORDING || step == Step.RESULTS || !s.configurationLocked && switch (step) {
             case INPUT -> input.getSelectedItem() != Input.WEBCAM || s.input == Input.WEBCAM && ready(s);
-            case SCENARIO -> selectedScenario() != GazeScenario.PERSONALIZATION || s.input == Input.WEBCAM && s.calibrated && ready(s);
-            case READY -> ready(s) && inputCommitted && scenarioCommitted && (selectedScenario() != GazeScenario.PERSONALIZATION || s.input == Input.WEBCAM && s.calibrated);
+            case SCENARIO -> selectedScenario() != GazeScenario.PERSONALIZATION && selectedScenario() != GazeScenario.BLINK_BASELINE || s.input == Input.WEBCAM && s.calibrated && ready(s);
+            case READY -> ready(s) && inputCommitted && scenarioCommitted && (selectedScenario() != GazeScenario.PERSONALIZATION || s.input == Input.WEBCAM && s.calibrated) && (!blinkEnable.isSelected() || s.input == Input.WEBCAM);
             default -> true;
         });
         revalidate(); repaint();
@@ -385,18 +402,20 @@ public final class GazeResearchPanel extends JPanel {
                 else if (controller.openSession(selectedSession().id)) step = Step.RESULTS;
             }
             case READY -> {
+                controller.setBlinkOptions(blinkEnable.isSelected(),new GazeBlinkMonitor.Config(participant.getText(),blinkGroup.getText(),blinkReference.isSelected(),(int)blinkFatigue.getValue(),(int)blinkEffort.getValue(),blinkSuggestions.isSelected()));
                 if (inputCommitted && scenarioCommitted && ready(s) && selectedScenario() == GazeScenario.PERSONALIZATION) {
                     if (controller.personalize(new GazeSessionMetadata.Labels(participant.getText(), task.getText(), condition.getText()))) step = Step.PROFILE;
                 } else if (inputCommitted && scenarioCommitted && ready(s) && controller.startSession(new GazeSessionMetadata.Labels(participant.getText(), task.getText(), condition.getText()))) {
                     step = Step.RECORDING; wasRecording = true;
                 }
             }
-            case RECORDING -> { controller.stopSession(); step = Step.RESULTS; wasRecording = false; }
+            case RECORDING -> { controller.stopSession(); step = Step.RESULTS; wasRecording = false; resetBlinkRatings(); }
             case RESULTS -> { if (!s.configurationLocked) controller.setPaused(true); step = Step.INPUT; inputCommitted = false; scenarioCommitted = false; sessions.setSelectedIndex(0); }
             case PROFILE -> { step = Step.SCENARIO; scenarioCommitted = false; condition.setText(""); }
         }
         refresh();
     }
+    private void resetBlinkRatings() { blinkReference.setSelected(false);blinkFatigue.setValue(-1);blinkEffort.setValue(-1); }
     private void back() {
         step = switch (step) { case SCENARIO -> Step.INPUT; case SESSION -> browsingSaved ? Step.INPUT : Step.SCENARIO; case READY -> Step.SESSION; default -> step; }; refresh();
     }

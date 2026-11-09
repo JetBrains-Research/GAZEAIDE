@@ -42,6 +42,11 @@ export const SCENARIOS = {
     "Record viewing visits without visual effects or context preparation.",
     {},
   ],
+  BLINK_BASELINE: [
+    "Personal baseline & blink activity",
+    "Record normal reading for several minutes with a real webcam. Explicitly rested reference recordings build your personal closure baseline; no visual adaptation or automatic requests.",
+    {},
+  ],
   CUSTOM: [
     "Custom features",
     "Combine effects and choose timing below. Green line tint belongs to Highlight viewed lines.",

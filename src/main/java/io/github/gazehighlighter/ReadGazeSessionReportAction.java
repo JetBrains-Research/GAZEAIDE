@@ -21,7 +21,7 @@ public class ReadGazeSessionReportAction extends AnAction {
 
         GazeSession session = GazeRecordingService.getInstance(project).finishedSession();
 
-        if (session == null || session.events.isEmpty()) {
+        if (session == null || (session.events.isEmpty() && session.blink == null)) {
             GazeNotify.warn(project, "Nothing to report yet — start a gaze recording, read some "
                     + "code, then stop it before reading the report.");
             return;

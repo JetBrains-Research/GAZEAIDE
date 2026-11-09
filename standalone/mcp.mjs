@@ -49,7 +49,7 @@ async function handle(m) {
     return {
       protocolVersion: "2024-11-05",
       capabilities: { tools: {} },
-      serverInfo: { name: "gazeaide", version: "1.0.0" },
+      serverInfo: { name: "gazeaide", version: "1.1.0" },
     };
   if (m.method === "ping") return {};
   if (m.method === "tools/list") return { tools };

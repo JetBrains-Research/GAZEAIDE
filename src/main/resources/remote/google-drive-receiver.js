@@ -91,7 +91,7 @@ function configuration_(v) {
   }); };
   return object_(v, {
     input: oneOf_(['WEBCAM', 'MOUSE_PROXY', 'MOUSE_SIMULATION', 'UNKNOWN']),
-    scenario: oneOf_(['PERSONALIZATION', 'FOCUS', 'COVERAGE', 'FADE', 'NAMES', 'RELATIONSHIPS', 'WALKTHROUGH', 'OBSERVE', 'CUSTOM', 'UNKNOWN']),
+    scenario: oneOf_(['PERSONALIZATION', 'BLINK_BASELINE', 'FOCUS', 'COVERAGE', 'FADE', 'NAMES', 'RELATIONSHIPS', 'WALKTHROUGH', 'OBSERVE', 'CUSTOM', 'UNKNOWN']),
     calibrated: boolean_, features: feature, tracking: tracking, review: review
   });
 }

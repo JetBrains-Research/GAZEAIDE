@@ -415,7 +415,15 @@ public final class UniteyeGazeService implements Disposable {
         line = line.trim();
         if (line.isEmpty()) return;
 
-        if (line.startsWith("OK ")) {
+        if (line.startsWith("EYE ")) {
+            if (GazeInputSettings.getInstance().isMock() || GazeInputSettings.getInstance().getInputMode() != GazeInputMode.WEBCAM) return;
+            String[] parts=line.split("\\s+");
+            if(parts.length==5) try {
+                long at=Long.parseLong(parts[1]);
+                if(Math.abs(System.currentTimeMillis()-at)<=2000)
+                    GazeRecordingService.eyeSampleForOpenProjects(at,Double.parseDouble(parts[3]),Double.parseDouble(parts[4]),parts[2].equals("1"));
+            } catch(NumberFormatException ignored) { /* Drop malformed observations, never infer a blink from them. */ }
+        } else if (line.startsWith("OK ")) {
             String[] parts = line.split("\\s+");
             if (parts.length >= 3) {
                 try {

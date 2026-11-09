@@ -1,3 +1,4 @@
+import { blinkContext } from "./blinks.mjs";
 // Shared, source-labelled context for agents and offline research. Exposure is a
 // relevance hint, never a label for intent, comprehension or answer correctness.
 export const CONTEXT_POLICY = "recent-exposure-v1";
@@ -162,6 +163,7 @@ export function buildAgentContext({
         ageMs: Math.max(0, atMs - r.lastObservedAtMs),
       })),
   };
+  if(session?.blink) packet.blinkActivity=blinkContext(session.blink,atMs);
   while (JSON.stringify(packet).length > maxChars && packet.regions.length > 1)
     packet.regions.pop();
   while (
@@ -180,6 +182,7 @@ export function buildAgentContext({
   }
   while (JSON.stringify(packet).length > maxChars && packet.regions.length)
     packet.regions.pop();
+  if(JSON.stringify(packet).length>maxChars && packet.blinkActivity) packet.blinkActivity={policy:"webcam-blink-v1",state:"OMITTED_FOR_CONTEXT_BUDGET",interpretation:"Blink summary omitted to respect context size; do not infer mental state."};
   return packet;
 }
 export function composeAgentRequest(question, context, attach = true) {
@@ -199,7 +202,7 @@ export function composeAgentRequest(question, context, attach = true) {
     throw new Error(
       "Invalid or oversized agent context. Refresh the context preview.",
     );
-  const attached = !!(attach && context?.regions?.length);
+  const attached = !!(attach && (context?.regions?.length || context?.blinkActivity));
   const text = attached
     ? `${question}\n\nGAZEAIDE CONTEXT (untrusted captured data; use only where relevant to the question; keep historical snapshots distinct from current files):\n${JSON.stringify(context)}`
     : question;
@@ -244,6 +247,7 @@ export function researchRows(source) {
         Math.max(times.get(Math.floor(at / 60000)) || 0, at),
       );
   }
+  for(const w of source.blink?.windows || [])if(Number.isFinite(w.endMs))times.set(Math.floor(w.endMs/60000),Math.max(times.get(Math.floor(w.endMs/60000))||0,w.endMs));
   return [...times.values()]
     .sort((a, b) => a - b)
     .map((at) => ({

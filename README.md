@@ -1,6 +1,6 @@
 # GAZEAIDE
 
-**GAZEAIDE 1.0.0** is a research tool for exploring how estimated viewing context can support code review and AI-assisted work. This repository contains two editions of the same tool. Start with a mouse; a webcam and AI account are optional for the first demonstration.
+**GAZEAIDE** is a research tool for exploring how estimated viewing context can support code review and AI-assisted work. This repository contains two editions of the same tool. Start with a mouse; a webcam and AI account are optional for the first demonstration.
 
 | Edition | Where it runs | AI connection | Start here |
 | --- | --- | --- | --- |
@@ -8,6 +8,10 @@
 | Standalone | A local Node.js server and your browser | Its own Codex conversation, plus optional read-only MCP tools | [Run the standalone](docs/GETTING_STARTED.md#standalone) |
 
 Both provide viewing-driven visual scenarios, smoothing, calibration with retry, local recordings, captured context, research records, feedback and exports. The standalone also displays local Codex conversation history and records its own observed replies. The plugin cannot observe native AI replies; optional pasted answers are labelled as user transcriptions.
+
+## Blink activity (1.1.0 development)
+
+Both editions now support opt-in blink observations and a longer-term personal rested reference. See the [step-by-step guide and measurement limits](docs/BLINK_ACTIVITY.md). The 1.0.0 release below predates this feature; build the current source for 1.1.0.
 
 ## Project origin
 

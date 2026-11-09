@@ -143,6 +143,16 @@
               maxlength="120"
               placeholder="e.g. follow my reading"
           /></label>
+          <details id="blink-settings" open>
+            <summary>Blink activity &amp; personal baseline (optional)</summary>
+            <label class="check"><input type="checkbox" id="blink-enable" class="setup-control">Collect webcam blink observations</label>
+            <label>Camera/reference group<input id="blink-group" value="default-camera" maxlength="120" class="setup-control"></label>
+            <label class="check"><input type="checkbox" id="blink-reference" class="setup-control">This is a rested reference recording</label>
+            <label>Fatigue at start (0–10; −1 = unreported)<input id="blink-fatigue" type="number" min="-1" max="10" step="1" value="-1" class="setup-control"></label>
+            <label>Mental effort at start (0–10; −1 = unreported)<input id="blink-effort" type="number" min="-1" max="10" step="1" value="-1" class="setup-control"></label>
+            <label class="check"><input type="checkbox" id="blink-suggestions" class="setup-control">Show optional break suggestion</label>
+            <p class="hint">Use the same participant code and camera group across recordings; blank participant means local-user. Change group when the setup changes. Only explicitly rested recordings build the reference. At least 3 usable minute windows and 10 blinks are needed; the reference applies to later recordings. No video is saved. Enabled blink summaries join context when you explicitly send a question with context attached.</p>
+          </details>
           <div id="setup-summary" class="hint"></div>
           <button id="record" class="primary wide">Review setup & start</button>
           <div class="button-row">
@@ -290,6 +300,7 @@
         </nav>
         <div id="session" class="panel active">
           <div class="section-label">LIVE VIEWING</div>
+          <h2>Blink activity</h2><pre id="blink-live" aria-live="polite">Blink collection off.</pre>
           <h1>Your reading, in context.</h1>
           <p id="live-instructions">
             Follow my reading keeps a stable viewed code block prominent.
@@ -392,6 +403,7 @@
           >
             <option value="">Current session</option>
           </select>
+          <h3>Blink activity</h3><pre id="blink-results">Blink collection off.</pre><button id="export-blinks" disabled>Export blink events CSV</button>
           <p id="result-summary">Stop a recording to inspect results.</p>
           <div class="button-row">
             <button data-export="json">JSON</button

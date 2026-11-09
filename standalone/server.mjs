@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes, timingSafeEqual, randomUUID } from "node:crypto";
+import { blinkConfig, blinkReference, validBlinkData } from "./lib/blinks.mjs";
 import { composeAgentRequest } from "./lib/agent-context.mjs";
 import { AgentResearchStore } from "./lib/agent-research.mjs";
 import { acquireLibrary } from "./lib/library-lock.mjs";
@@ -119,7 +120,7 @@ export async function start({
               return json({
                 project: path.basename(project),
                 projectRoot: project,
-                version: "1.0.0",
+                version: "1.1.0",
                 standaloneRoot: HERE,
                 dataRoot: data,
                 preferences: pref,
@@ -195,6 +196,13 @@ export async function start({
               );
             }
           } else {
+            if (route === "/api/blink-reference") {
+              const records=[];
+              for(const name of (await fs.readdir(path.join(data,"sessions"))).filter(n=>n.endsWith(".json"))) {
+                try { const s=JSON.parse(await fs.readFile(path.join(data,"sessions",name),"utf8")); if(s.blink) { const b=s.blink; records.push({id:s.id,startMs:s.startMs,endMs:s.endMs,inProgress:s.inProgress,blink:{policy:b.policy,inputKind:b.inputKind,config:b.config,windows:b.windows,truncated:b.truncated}}); } } catch {}
+              }
+              return json(blinkReference(records,blinkConfig(body),Date.now()));
+            }
             if (route === "/api/preferences") {
               pref = body;
               await atomic(path.join(data, "preferences.json"), pref);
@@ -209,7 +217,8 @@ export async function start({
                 !validId(body.id) ||
                 body.schemaVersion !== 3 ||
                 !Array.isArray(body.events) ||
-                body.events.length > 100000
+                body.events.length > 100000 ||
+                (body.blink != null && !validBlinkData(body.blink))
               )
                 return fail(400, "Invalid session");
               await atomic(

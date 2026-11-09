@@ -31,13 +31,14 @@ public final class GazeSessionExporter {
 
     private GazeSessionExporter() {}
 
-    /** Writes all three formats next to each other as {@code <baseName>.csv/.json/.html}. */
+    /** Writes viewing CSV/JSON/HTML and, when collected, a separate blink CSV next to each other as {@code <baseName>.csv/.json/.html}. */
     public static List<Path> exportAll(GazeSession session, Path directory, String baseName) throws IOException {
         Files.createDirectories(directory);
         List<Path> out = new ArrayList<>();
         out.add(exportCsv(session, directory.resolve(baseName + ".csv")));
         out.add(exportJson(session, directory.resolve(baseName + ".json")));
         out.add(exportHeatmapHtml(session, directory.resolve(baseName + ".html")));
+        if(session.blink!=null)out.add(exportBlinksCsv(session,directory.resolve(baseName+"-blinks.csv")));
         return out;
     }
 
@@ -99,6 +100,7 @@ public final class GazeSessionExporter {
         sb.append("  \"endIso\": "); jsonString(sb, ISO.format(Instant.ofEpochMilli(session.endMs))); sb.append(",\n");
         sb.append("  \"metadata\": ").append(JSON.toJson(session.metadata)).append(",\n");
         sb.append("  \"configurationChanges\": ").append(JSON.toJson(session.configurationChanges)).append(",\n");
+        if(session.blink!=null) sb.append("  \"blink\": ").append(JSON.toJson(session.blink)).append(",\n");
         sb.append("  \"events\": [\n");
         for (int i = 0; i < session.events.size(); i++) {
             GazeEvent e = session.events.get(i);
@@ -147,6 +149,11 @@ public final class GazeSessionExporter {
 
     // ── HTML heatmap + replay ────────────────────────────────────────────────────
 
+    public static Path exportBlinksCsv(GazeSession session,Path file) throws IOException {
+        StringBuilder s=new StringBuilder("start_ms,end_ms,kind,duration_ms,lower_bound_ms,upper_bound_ms,max_sampling_gap_ms,reason\n");
+        if(session.blink!=null)for(var e:session.blink.events())s.append(e.startMs()).append(',').append(e.endMs()).append(',').append(csv(e.kind())).append(',').append(e.durationMs()==null?"":e.durationMs()).append(',').append(e.lowerBoundMs()==null?"":e.lowerBoundMs()).append(',').append(e.upperBoundMs()==null?"":e.upperBoundMs()).append(',').append(e.maxSamplingGapMs()==null?"":e.maxSamplingGapMs()).append(',').append(csv(e.reason()==null?"":e.reason())).append('\n');
+        Files.writeString(file,s,StandardCharsets.UTF_8);return file;
+    }
     public static Path exportHeatmapHtml(GazeSession session, Path file) throws IOException {
         // Group events by file, preserving first-seen order.
         Map<String, List<GazeEvent>> byFile = new LinkedHashMap<>();
@@ -175,6 +182,7 @@ public final class GazeSessionExporter {
             .append("<span><b>Total dwell:</b> ").append(formatDuration(totalDwell)).append("</span>")
             .append("<span><b>AI dwell triggers:</b> ").append(explainedCount).append("</span>")
             .append("</div>\n");
+        if(session.blink!=null)html.append("<h2>Blink activity</h2><pre>").append(esc(GazeBlinkMonitor.status(session.blink))).append("</pre>");
         html.append("</header>\n");
 
         html.append("<div id=\"transport\">\n")

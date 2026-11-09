@@ -21,6 +21,7 @@ final class GazeHelpDialog extends DialogWrapper {
                 + "Session: one recording for a task; saved results can be reopened.\n"
                 + "Calibration: align webcam gaze estimates with screen positions. Check accuracy measures remaining error without fitting a new correction.\n"
                 + "Personalization: optional target-following task that selects a stability/response preset. One saved profile works with all scenarios; it stays fixed during recording. It does not learn your reading speed or understanding.\n"
+                + "Personal baseline & blink activity: opt-in real-webcam recordings across sessions, with blink rates, estimated durations, quality flags and a rested personal reference. In Session set participant/camera group and explicitly mark rested reference recordings. Three usable minute windows and ten blinks are needed for later recordings. Separate fatigue/effort self-ratings are optional. The closure-deviation score is experimental, not cognitive load, fatigue probability or diagnosis. No video is saved. Blink summaries enter explicit AI context previews; turn off attachment to omit them. Reduced remote uploads exclude them.\n"
                 + "AI context: captured code and, when needed, recent viewed blocks included in a question. It is not an AI answer.\n"
                 + "Review walkthrough: overview → files → code snapshots, with your own notes and review marks.\n"
                 + "Viewing trace: the chronological path of accepted code-line visits, including returns.\n\n"

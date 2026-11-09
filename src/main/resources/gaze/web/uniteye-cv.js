@@ -50,6 +50,7 @@ export class UnitEyeWeb {
     this.modelUrl = opts.modelUrl || 'models/eyemu.onnx';
     this.onGaze = opts.onGaze || function () {};
     this.onStatus = opts.onStatus || function () {};
+    this.onEyeSample = opts.onEyeSample || function () {};
     this.screenW = opts.screenW || window.innerWidth;
     this.screenH = opts.screenH || window.innerHeight;
     this.blinkThreshold = opts.blinkThreshold ?? 0.15;
@@ -115,13 +116,15 @@ export class UnitEyeWeb {
     if (this._running) return;
     this._running = true;
     this._lastVideoTime = -1;
+    this._latestEyeValid = false;
+    this._latestBlink = false;
     const generation = this._runGeneration = (this._runGeneration || 0) + 1;
     if (this.mock) {
       this._mouseListener = e => { this._mouse.x = e.clientX; this._mouse.y = e.clientY; };
       window.addEventListener('mousemove', this._mouseListener);
     }
     // Windowless pages do not receive reliable animation frames. Schedule the next sample
-    // only after inference finishes, so slow frames cannot overlap or build a queue.
+    // after face processing. Gaze prediction is separately limited to one in flight.
     const tick = async () => {
       if (!this._running || generation !== this._runGeneration) return;
       try {
@@ -131,7 +134,7 @@ export class UnitEyeWeb {
         // Cancel attribution immediately on a failed inference frame. The last valid
         // coordinate must not continue to accrue viewing time until the host timeout.
         if (this._running && generation === this._runGeneration)
-          this.onGaze(null, null, false, false);
+          { this._eyeEpoch = (this._eyeEpoch || 0) + 1; this._latestEyeValid = false; this.onGaze(null, null, false, false); this.onEyeSample?.({atMs: Math.round(performance.timeOrigin + performance.now()), face: false, left: null, right: null}); }
         console.warn('UnitEye frame error', e);
       }
       if (this._running && generation === this._runGeneration) this._sampleTimer = setTimeout(tick, 33);
@@ -158,11 +161,27 @@ export class UnitEyeWeb {
     this._lastVideoTime = this.video.currentTime;
     const res = this.faceLandmarker.detectForVideo(this.video, now);
     if (!res || !res.faceLandmarks || res.faceLandmarks.length === 0) {
+      this._latestEyeValid = false;
+      this._eyeEpoch = (this._eyeEpoch || 0) + 1;
+      this.onEyeSample?.({atMs: Math.round(performance.timeOrigin + now), face: false, left: null, right: null});
       this._emit(0, 0, null, false, false, now / 1000);
       return;
     }
     const lm = res.faceLandmarks[0]; // 478 {x,y,z} normalized, y top-left
     const vw = this.video.videoWidth, vh = this.video.videoHeight;
+    const [leftEar, rightEar] = this._eyeRatios(lm, vw, vh);
+    const blink = (leftEar + rightEar) / 2 < this.blinkThreshold;
+    this._latestEyeValid = Number.isFinite(leftEar + rightEar);
+    this._latestBlink = blink;
+    // Observe eyelids before gaze inference. Slow ONNX predictions must not set the
+    // eyelid observation cadence. One inference remains in flight at most.
+    this.onEyeSample?.({atMs: Math.round(performance.timeOrigin + now), face: true, left: leftEar, right: rightEar});
+    if (blink || !this._latestEyeValid) {
+      this._eyeEpoch = (this._eyeEpoch || 0) + 1;
+      this.onGaze(null, null, blink, this._latestEyeValid);
+      return;
+    }
+    if (this._inferenceToken) return;
 
     // eye crops (128x128, NHWC, RGB-0.5). Left eye is flipped to match EyeMU (native flips left).
     // Argument order matches the native GetEyeTexture calls: left (362=lInner, 263=lOuter),
@@ -185,8 +204,12 @@ export class UnitEyeWeb {
       'input_4': new ort.Tensor('float32', corners, [1, 8]),
       'input_5': new ort.Tensor('float32', pose, [1, 4]),
     };
+    const token = this._inferenceToken = { eyeEpoch: this._eyeEpoch || 0 };
+    void (async () => {
+      try {
     const out = await this.session.run(feeds);
     if (!this._running || generation !== this._runGeneration) return;
+    if (token.eyeEpoch !== (this._eyeEpoch || 0)) return;
     const emb = out['dense_7'].data;   // 4
     const gaze = out['dense_8'].data;  // 2 (normalized 0..1)
 
@@ -201,8 +224,15 @@ export class UnitEyeWeb {
     // constant screen-size features, which standardize to zero and carry no signal.
     const features = this.C.buildEyeMUFeatures(emb, gaze[0], gaze[1], pose, lm, this._features);
 
-    const blink = this._blink(lm, vw, vh);
+    if (performance.now() - now > 1000 || !this._latestEyeValid || this._latestBlink) { this.onGaze(null, null, !!this._latestBlink, !!this._latestEyeValid); return; }
     this._emit(rawX, rawY, features, blink, true, now / 1000);
+      } catch (error) {
+        if (this._running && generation === this._runGeneration) this.onGaze(null, null, false, false);
+        console.warn('UnitEye gaze inference failed', error);
+      } finally {
+        if (this._inferenceToken === token) this._inferenceToken = null;
+      }
+    })();
   }
 
   _eyeTensor(lm, aIdx, bIdx, vw, vh, flip) {
@@ -231,7 +261,7 @@ export class UnitEyeWeb {
     return Float32Array.from([yaw, pitch, roll, area]);
   }
 
-  _blink(lm, vw, vh) {
+  _eyeRatios(lm, vw, vh) {
     const ear = (spec) => {
       const d1 = dist2(lm[spec[0][0]].x, lm[spec[0][0]].y, lm[spec[0][1]].x, lm[spec[0][1]].y, vw, vh);
       const d2 = dist2(lm[spec[1][0]].x, lm[spec[1][0]].y, lm[spec[1][1]].x, lm[spec[1][1]].y, vw, vh);
@@ -239,7 +269,7 @@ export class UnitEyeWeb {
       const D = dist2(lm[spec[3][0]].x, lm[spec[3][0]].y, lm[spec[3][1]].x, lm[spec[3][1]].y, vw, vh);
       return (d1 + d2 + d3) / (3 * (D || 1e-6));
     };
-    return ((ear(IDX.rEar) + ear(IDX.lEar)) / 2) < this.blinkThreshold;
+    return [ear(IDX.lEar), ear(IDX.rEar)];
   }
 
   _emit(rawX, rawY, features, blink, facePresent, t) {

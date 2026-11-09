@@ -1,0 +1,189 @@
+{
+  "options": {
+    "startMs": 1000,
+    "config": {
+      "participant": "fixture-participant",
+      "group": "fixture-camera",
+      "reference": true,
+      "fatigue": 1,
+      "effort": 3,
+      "suggestions": false
+    },
+    "reference": {
+      "policy": "webcam-blink-v1",
+      "participant": "fixture-participant",
+      "group": "fixture-camera",
+      "windows": 0,
+      "sessions": 0,
+      "blinks": 0,
+      "observedMs": 0,
+      "ready": false,
+      "medianBlinkMs": 0,
+      "durationMadMs": 0,
+      "closedFraction": 0,
+      "fractionMad": 0,
+      "learnedBeforeMs": 1000,
+      "scope": "Up to 240 usable complete windows from earlier explicitly rested reference recordings; frozen for this recording."
+    }
+  },
+  "runs": [
+    {
+      "from": 1000,
+      "to": 1960,
+      "step": 40,
+      "left": 0.25,
+      "right": 0.25,
+      "face": true
+    },
+    {
+      "from": 2000,
+      "to": 2120,
+      "step": 40,
+      "left": 0.1,
+      "right": 0.1,
+      "face": true
+    },
+    {
+      "from": 2160,
+      "to": 30960,
+      "step": 40,
+      "left": 0.25,
+      "right": 0.25,
+      "face": true
+    },
+    {
+      "from": 31000,
+      "to": 31960,
+      "step": 40,
+      "left": 0.1,
+      "right": 0.1,
+      "face": true
+    },
+    {
+      "from": 32000,
+      "to": 61000,
+      "step": 40,
+      "left": 0.25,
+      "right": 0.25,
+      "face": true
+    }
+  ],
+  "atMs": 61000,
+  "expected": {
+    "schemaVersion": 1,
+    "policy": "webcam-blink-v1",
+    "inputKind": "WEBCAM",
+    "config": {
+      "participant": "fixture-participant",
+      "group": "fixture-camera",
+      "reference": true,
+      "fatigue": 1,
+      "effort": 3,
+      "suggestions": false
+    },
+    "startMs": 1000,
+    "capturedAtMs": 61000,
+    "lastSampleAtMs": 61000,
+    "events": [
+      {
+        "durationMs": 160,
+        "lowerBoundMs": 120,
+        "upperBoundMs": 200,
+        "maxSamplingGapMs": 40,
+        "reason": null,
+        "startMs": 2000,
+        "endMs": 2160,
+        "kind": "BLINK"
+      },
+      {
+        "durationMs": 1000,
+        "lowerBoundMs": 960,
+        "upperBoundMs": 1040,
+        "maxSamplingGapMs": 40,
+        "reason": null,
+        "startMs": 31000,
+        "endMs": 32000,
+        "kind": "PROLONGED_CLOSURE"
+      }
+    ],
+    "windows": [
+      {
+        "startMs": 1000,
+        "endMs": 61000,
+        "complete": true,
+        "observedMs": 60000,
+        "closedMs": 1080,
+        "frames": 1500,
+        "invalidSamples": 0,
+        "gaps": 0,
+        "blinks": 1,
+        "prolongedClosures": 1,
+        "blinkRatePerMinute": 1,
+        "medianBlinkMs": 160,
+        "closedFraction": 0.018,
+        "coverage": 1,
+        "samplingHz": 25,
+        "usable": true
+      },
+      {
+        "startMs": 61000,
+        "endMs": 61000,
+        "complete": false,
+        "observedMs": 0,
+        "closedMs": 0,
+        "frames": 1,
+        "invalidSamples": 0,
+        "gaps": 0,
+        "blinks": 0,
+        "prolongedClosures": 0,
+        "blinkRatePerMinute": null,
+        "medianBlinkMs": null,
+        "closedFraction": null,
+        "coverage": 0,
+        "samplingHz": 1000,
+        "usable": false
+      }
+    ],
+    "summary": {
+      "startMs": 1000,
+      "endMs": 61000,
+      "complete": true,
+      "observedMs": 60000,
+      "closedMs": 1080,
+      "frames": 1500,
+      "invalidSamples": 0,
+      "gaps": 0,
+      "blinks": 1,
+      "prolongedClosures": 1,
+      "blinkRatePerMinute": 1,
+      "medianBlinkMs": 160,
+      "closedFraction": 0.018,
+      "coverage": 1,
+      "samplingHz": 25,
+      "usable": true
+    },
+    "reference": {
+      "policy": "webcam-blink-v1",
+      "participant": "fixture-participant",
+      "group": "fixture-camera",
+      "windows": 0,
+      "sessions": 0,
+      "blinks": 0,
+      "observedMs": 0,
+      "ready": false,
+      "medianBlinkMs": 0,
+      "durationMadMs": 0,
+      "closedFraction": 0,
+      "fractionMad": 0,
+      "learnedBeforeMs": 1000,
+      "scope": "Up to 240 usable complete windows from earlier explicitly rested reference recordings; frozen for this recording."
+    },
+    "indicator": {
+      "state": "NEED_PERSONAL_REFERENCE",
+      "score": null,
+      "note": "Exploratory closure deviation, not a fatigue probability, cognitive-load estimate or diagnosis. Blink rate is reported but has no fixed fatigue direction."
+    },
+    "truncated": false,
+    "interpretation": "Bilateral EAR threshold crossings; durations are sample-bounded estimates. Closure fraction is not standardized PERCLOS. No video or raw eye/face samples retained."
+  }
+}

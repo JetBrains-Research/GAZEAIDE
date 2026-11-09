@@ -8,6 +8,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static io.github.gazehighlighter.GazeResearchPanel.Step.*;
 
 class GazeResearchPanelTest {
+    @Test void blinkScenarioRequiresWebcamAndCapturesExplicitOptionsWithoutAdapting() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var c=new ResearchPanelTestController();c.scenario=GazeScenario.BLINK_BASELINE;c.profile=c.scenario.profile();var panel=new GazeResearchPanel(c);assertTrue(component(panel,"blink-enable",JCheckBox.class).isSelected());next(panel);assertFalse(button(panel,"next").isEnabled());panel.dispose();
+            c=new ResearchPanelTestController();c.input=GazeResearchPanel.Input.WEBCAM;c.running=c.tracking=c.calibrated=true;
+            panel=new GazeResearchPanel(c);next(panel);combo(panel,"scenario").setSelectedItem(GazeScenario.BLINK_BASELINE);next(panel);
+            assertTrue(component(panel,"blink-enable",JCheckBox.class).isSelected());
+            component(panel,"blink-reference",JCheckBox.class).setSelected(true);component(panel,"blink-group",JTextField.class).setText("camera-a");component(panel,"participant",JTextField.class).setText("P01");
+            next(panel);next(panel);assertTrue(c.recording);assertTrue(c.collectBlinks);assertTrue(c.blinkConfig.reference());assertEquals("camera-a",c.blinkConfig.group());assertEquals("P01",c.blinkConfig.participant());assertFalse(c.blinkConfig.suggestions());
+            assertFalse(component(panel,"blink-reference",JCheckBox.class).isEnabled());assertFalse(c.profile.focus());assertFalse(c.profile.explanations());panel.dispose();
+        });
+    }
+
     @Test void pendingWebcamShowsActualStartupStageAndKeepsCalibrationDisabled() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             var c = new ResearchPanelTestController(); c.input = GazeResearchPanel.Input.WEBCAM; c.starting = true;

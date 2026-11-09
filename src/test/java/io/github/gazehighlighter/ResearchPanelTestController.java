@@ -16,6 +16,11 @@ class ResearchPanelTestController implements GazeResearchPanel.Controller {
     boolean cursor;
     int accuracyChecks;
     GazeResponse response = GazeResponse.STEADY;
+    boolean collectBlinks;
+    GazeBlinkMonitor.Config blinkConfig = new GazeBlinkMonitor.Config("","",false,null,null,false);
+    public boolean collectBlinks() { return collectBlinks; }
+    public GazeBlinkMonitor.Config blinkConfig() { return blinkConfig; }
+    public void setBlinkOptions(boolean enabled,GazeBlinkMonitor.Config config) { collectBlinks=enabled;blinkConfig=config; }
     boolean personalProfile, personalActive, allowPersonalization = true, quiet = true;
     int personalizations, openedOffers, dismissedOffers;
     GazeReviewPurpose purpose = GazeReviewPurpose.COMPARE;

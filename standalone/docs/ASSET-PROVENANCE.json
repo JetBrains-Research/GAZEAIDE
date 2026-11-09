@@ -7,7 +7,7 @@
   {
     "pluginSource": "src/main/resources/gaze/web/uniteye-cv.js",
     "standaloneAsset": "standalone/public/vendor/uniteye-cv.js",
-    "sha256": "30a74f257e39bb23f55831dfefb9d2df729d38eb268a840772167dc528243ca0"
+    "sha256": "893aaa87deda34740c92a071b126b0ee1a35811129eab7e64cdd6ca822a3625e"
   },
   {
     "pluginSource": "src/main/resources/gaze/web/models/eyemu.onnx",
@@ -22,6 +22,6 @@
   {
     "pluginSource": "src/main/resources/remote/google-drive-receiver.js",
     "standaloneAsset": "standalone/docs/google-drive-receiver.js",
-    "sha256": "e9263f8b7c05b3a7212fae54e3328dd00212d5b3c5fea770330e21e5937c8e45"
+    "sha256": "bad6c55790a9c9c034c46ebe9618ebe310177ca36ba4ec8942a689305c7a0675"
   }
 ]

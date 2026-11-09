@@ -60,3 +60,7 @@ Mouse records must not be relabelled as webcam data. Measured line visits are es
 ## Saved data and stopping
 
 Stop recording before closing. In standalone, stop/release the camera and use Ctrl+C in the server terminal. The default library is `.local/` inside the standalone folder; a portable copy starts its own library. In the plugin, stopped sessions are saved in the IDE's local system storage, outside project source. Exports can contain source/conversation text and participant codes: read [privacy](../PRIVACY.md) before sharing them.
+
+## Optional blink activity and longer-term personalization (1.1)
+
+Connect a real webcam, then select **Personal baseline & blink activity**. In Session choose your participant code and camera group, explicitly mark rested reference recordings, and optionally enter separate fatigue/effort ratings. Record several minutes; stop and inspect Results. A later recording uses earlier matching rested recordings once at least three usable minute windows and ten blinks exist. No score appears before quality and reference requirements are met. This differs from the short Personalization scenario (plugin) or Fit personal response task (standalone) that selects gaze smoothing. Read the [complete workflow and measurement limits](BLINK_ACTIVITY.md). This feature requires a 1.1 build; the published 1.0.0 ZIPs do not include it.
