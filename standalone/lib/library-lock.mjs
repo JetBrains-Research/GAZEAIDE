@@ -28,6 +28,52 @@ export async function acquireLibrary(data) {
       throw new Error("Invalid library owner");
     return value;
   };
+  const stale = async (file) => {
+    try {
+      return Date.now() - (await fs.stat(file)).mtimeMs > 10000;
+    } catch (e) {
+      if (e.code === "ENOENT") return false;
+      throw e;
+    }
+  };
+  const recoverGuard = async () => {
+    try {
+      await fs.mkdir(guard, { mode: 0o700 });
+      await fs.writeFile(
+        path.join(guard, "owner.json"),
+        JSON.stringify(owner),
+        { mode: 0o600 },
+      );
+      return;
+    } catch (e) {
+      if (e.code !== "EEXIST") throw e;
+    }
+    let previous;
+    try {
+      previous = JSON.parse(
+        await fs.readFile(path.join(guard, "owner.json"), "utf8"),
+      );
+    } catch {}
+    if (
+      previous && Number.isSafeInteger(previous.pid) && previous.pid > 0
+        ? alive(previous.pid)
+        : !(await stale(guard))
+    )
+      throw new Error(
+        "Library recovery is already in progress. Retry after it finishes.",
+      );
+    const retired = guard + "-" + randomUUID();
+    try {
+      await fs.rename(guard, retired);
+    } catch (e) {
+      if (e.code !== "ENOENT") throw e;
+    }
+    await fs.rm(retired, { recursive: true, force: true });
+    await fs.mkdir(guard, { mode: 0o700 });
+    await fs.writeFile(path.join(guard, "owner.json"), JSON.stringify(owner), {
+      mode: 0o600,
+    });
+  };
   const release = async () => {
     if ((await read()).token === owner.token) await fs.unlink(file);
   };
@@ -55,6 +101,20 @@ export async function acquireLibrary(data) {
       previous = await read();
     } catch (e) {
       if (e.code === "ENOENT") continue;
+      if (await stale(file)) {
+        await recoverGuard();
+        try {
+          try {
+            await read();
+          } catch (readError) {
+            if (readError.code !== "ENOENT" && (await stale(file)))
+              await fs.unlink(file);
+          }
+        } finally {
+          await fs.rm(guard, { recursive: true, force: true });
+        }
+        continue;
+      }
       throw new Error(
         `The data folder is being opened or has an incomplete lock: ${file}. Close other copies before retrying; remove this file only after confirming none is running.`,
       );
@@ -63,14 +123,7 @@ export async function acquireLibrary(data) {
       throw new Error(
         "This data folder is already open in GAZEAIDE. Use its existing window, or choose a separate --data folder.",
       );
-    try {
-      await fs.mkdir(guard, { mode: 0o700 });
-    } catch (e) {
-      if (e.code !== "EEXIST") throw e;
-      throw new Error(
-        `Library recovery is already in progress. Retry after it finishes. If that startup crashed, close all copies before removing ${guard}.`,
-      );
-    }
+    await recoverGuard();
     try {
       let current;
       try {
@@ -83,7 +136,7 @@ export async function acquireLibrary(data) {
       await fs.unlink(file);
       if (await claim()) return release;
     } finally {
-      await fs.rmdir(guard);
+      await fs.rm(guard, { recursive: true, force: true });
     }
   }
   return release;

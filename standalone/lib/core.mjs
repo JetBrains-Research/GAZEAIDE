@@ -68,7 +68,12 @@ export const key = (r) =>
   r &&
   `${r.filePath}:${r.firstLine}:${r.lastLine}:${r.documentStamp}:${r.source}`;
 export const location = (r) => `${r.filePath}:${r.firstLine}–${r.lastLine}`;
-export function mask(text) {
+export function mask(text, language = "") {
+  const hashComments =
+    /\.(py|rb|sh|bash|zsh|yaml|yml|toml)$/i.test(language) ||
+    /^(python|ruby|shell|yaml|toml)$/.test(language) ||
+    (!language && /(?:^|\n)\s*(?:def |from |import |class \w+.*:)/.test(text));
+  const rust = /\.rs$|^rust$/i.test(language);
   let out = text.split(""),
     block = false,
     comment = false,
@@ -113,10 +118,19 @@ export function mask(text) {
       block = true;
       out[i] = " ";
       out[++i] = " ";
-    } else if ((c === "/" && next === "/") || c === "#") {
+    } else if ((c === "/" && next === "/") || (c === "#" && hashComments)) {
       comment = true;
       out[i] = " ";
     } else if ("'\"`".includes(c)) {
+      // Rust lifetimes are not quoted character literals.
+      if (
+        c === "'" &&
+        rust &&
+        /[a-zA-Z_]/.test(next) &&
+        !/^'[a-zA-Z_]'/.test(text.slice(i))
+      )
+        continue;
+      if (c !== "`" && text.indexOf(c, i + 1) < 0) continue;
       quote = c;
       out[i] = " ";
       if (next === c && text[i + 2] === c) {
@@ -128,9 +142,9 @@ export function mask(text) {
   }
   return out.join("");
 }
-export function region(text, target) {
+export function region(text, target, language = "") {
   const lines = text.split("\n"),
-    clean = mask(text),
+    clean = mask(text, language),
     stack = [];
   target = Math.max(0, Math.min(target, lines.length - 1));
   let line = 0,
@@ -182,14 +196,103 @@ export function region(text, target) {
   if (code.length > 6000) code = code.slice(0, 6000) + "\n[region truncated]";
   return { firstLine: start + 1, lastLine: end + 1, label, text: code };
 }
+export function regionIndex(text, language = "") {
+  const lines = text.split("\n"),
+    clean = mask(text, language),
+    stack = [],
+    ranges = [];
+  let line = 0;
+  for (const c of clean) {
+    if (c === "\n") line++;
+    else if (c === "{") stack.push(line);
+    else if (c === "}" && stack.length) {
+      let first = stack.pop();
+      if (lines[first].trim() === "{" && first > 0) first--;
+      ranges.push([first, line]);
+    }
+  }
+  const cleanLines = clean.split("\n"),
+    python =
+      /\.py$/.test(language) ||
+      (!language && /^\s*(?:async\s+)?(?:def|class)\b/m.test(text));
+  if (python) {
+    const pending = [];
+    for (let n = 0; n < lines.length; n++) {
+      if (!cleanLines[n].trim()) continue;
+      const indent = lines[n].length - lines[n].trimStart().length;
+      while (pending.length && indent <= pending.at(-1).indent) {
+        const p = pending.pop();
+        ranges.push([p.line, n - 1]);
+      }
+      if (
+        /^(?:(?:async\s+)?(?:def|class|if|elif|else|for|while|with|try|except|finally|match|case)\b.*:)$/u.test(
+          cleanLines[n].trim(),
+        )
+      )
+        pending.push({ line: n, indent });
+    }
+    for (const p of pending) ranges.push([p.line, lines.length - 1]);
+  }
+  const owners = new Int32Array(lines.length);
+  owners.fill(-1);
+  const values = [];
+  // Assign smallest ranges first. Each line receives a single owner.
+  ranges.sort((a, b) => a[1] - a[0] - (b[1] - b[0]));
+  for (const [first, last] of ranges) {
+    const id = values.length;
+    values.push(null);
+    for (let n = first; n <= last; n++) if (owners[n] < 0) owners[n] = id;
+    values[id] = () => {
+      const code = lines.slice(first, last + 1).join("\n");
+      return {
+        firstLine: first + 1,
+        lastLine: last + 1,
+        label:
+          lines[first].trim().slice(0, 90) || `Lines ${first + 1}–${last + 1}`,
+        text:
+          code.length > 6000
+            ? code.slice(0, 6000) + "\n[region truncated]"
+            : code,
+      };
+    };
+  }
+  const cached = new Map();
+  return (target) => {
+    if (target < 0 || target >= lines.length)
+      return region(text, target, language);
+    const id = owners[target];
+    if (id >= 0) {
+      if (!cached.has(id)) cached.set(id, values[id]());
+      return cached.get(id);
+    }
+    // Python and non-braced text use the original bounded fallback on demand.
+    const first = Math.floor(target / 8) * 8,
+      last = Math.min(lines.length - 1, first + 7),
+      key = "l" + first;
+    if (!cached.has(key)) {
+      const code = lines.slice(first, last + 1).join("\n");
+      cached.set(key, {
+        firstLine: first + 1,
+        lastLine: last + 1,
+        label:
+          lines[first].trim().slice(0, 90) || `Lines ${first + 1}–${last + 1}`,
+        text:
+          code.length > 6000
+            ? code.slice(0, 6000) + "\n[region truncated]"
+            : code,
+      });
+    }
+    return cached.get(key);
+  };
+}
 const keywords = new Set(
   "if else for while return class def public private protected static void int long double float boolean bool new null true false try catch finally throw throws import package const let var function async await this super in is and or not None True False with as pass break".split(
     " ",
   ),
 );
 const part = (c) => !!c && /[\p{L}\p{N}_$]/u.test(c);
-export function identifier(text, column) {
-  const s = mask(text);
+export function identifier(text, column, language = "") {
+  const s = mask(text, language);
   if (!part(s[column])) return null;
   let a = column,
     b = column + 1;
@@ -275,7 +378,7 @@ export class LineTarget {
     this.previous = t;
     if (
       this.active >= 0 &&
-      Math.abs(y - this.center) <= Math.max(1, height) * 0.68
+      Math.abs(y - this.center) <= Math.max(1, this.height) * 0.68
     ) {
       this.candidate = -1;
       return this.active;
@@ -287,6 +390,7 @@ export class LineTarget {
     if (t - this.since < hold) return -1;
     this.active = line;
     this.center = center;
+    this.height = height;
     this.candidate = -1;
     return line;
   }
@@ -610,9 +714,18 @@ export class Engine {
   exit(t) {
     this.flush(t);
     this.leaveActive(t);
+    this.gapAt = null;
     this.active = this.candidate = null;
     this.pendingAt = null;
     this.dwell?.reset();
+    this.token = this.candidateToken = null;
+  }
+  trackingGap(t) {
+    if (this.gapAt != null) return;
+    this.gapAt = t;
+    this.dwell.pause(t);
+    this.flush(t);
+    this.leaveActive(t);
     this.token = this.candidateToken = null;
   }
   pending(r, t) {
@@ -634,7 +747,8 @@ export class Engine {
     const cacheKey = `${file.path}:${file.version}:${line}`;
     let resolved = this.regionCache.get(cacheKey);
     if (!resolved) {
-      resolved = documentRegion(file, line) || region(file.text, line);
+      resolved =
+        documentRegion(file, line) || region(file.text, line, file.path);
       if (this.regionCache.size >= 500) this.regionCache.clear();
       this.regionCache.set(cacheKey, resolved);
     }
@@ -644,6 +758,14 @@ export class Engine {
       documentStamp: file.version,
       source,
     };
+    if (this.gapAt != null) {
+      if (t - this.gapAt > 500 || key(r) !== key(this.candidate)) this.exit(t);
+      else {
+        this.candidateSince += Math.max(0, t - this.gapAt);
+        if (this.active) this.activeAt = t;
+        this.gapAt = null;
+      }
+    }
     if (this.pendingAt !== null) {
       this.candidateSince += Math.max(0, t - this.pendingAt);
       if (this.active) this.activeAt = t;
@@ -655,6 +777,8 @@ export class Engine {
       key(this.visit.region) !== key(r)
     ) {
       this.flush(t);
+      this.token = this.candidateToken = null;
+      this.tokenSince = t;
       this.visit = {
         at: t,
         file: file.path,
@@ -674,7 +798,7 @@ export class Engine {
     const tok =
       file.contentKind === "codexSession" && resolved.kind !== "generatedCode"
         ? null
-        : identifier(this.visit.lineText, column);
+        : identifier(this.visit.lineText, column, file.path);
     if (tok !== this.candidateToken) {
       this.candidateToken = tok;
       this.tokenSince = t;
@@ -684,7 +808,8 @@ export class Engine {
     return r;
   }
   tick(t) {
-    if (!this.visit || this.pendingAt !== null) return;
+    if (this.gapAt != null && t - this.gapAt > 500) this.exit(t);
+    if (!this.visit || this.pendingAt !== null || this.gapAt != null) return;
     const o = this.options;
     if (
       key(this.candidate) !== key(this.active) &&
@@ -750,6 +875,7 @@ export function csv(session) {
     "codex_turn_id",
     "codex_item_id",
     "recorded_change_path",
+    "session_in_progress",
   ];
   return (
     cols.join(",") +
@@ -782,6 +908,7 @@ export function csv(session) {
           e.region?.provenance?.turnId,
           e.region?.provenance?.itemId,
           e.region?.path,
+          !!session.inProgress,
         ]
           .map(csvCell)
           .join(","),

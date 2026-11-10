@@ -64,7 +64,8 @@ test("loopback app enforces capability, origin, project boundary and persistent 
     assert.ok(Number.isSafeInteger(content.version));
     const original = await (await fetch(url + "/")).text();
     assert.ok(!original.includes("__GAZEAIDE_TOKEN__"));
-    assert.ok(original.includes(token));
+    assert.ok(!original.includes(token));
+    assert.equal(new URL(app.browserUrl).hash,"#key="+token);
     const s = { id: "test-123", schemaVersion: 3, events: [], startMs: 1000 };
     assert.equal(
       (

@@ -1,3 +1,4 @@
+import {VERSION} from "./lib/version.mjs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -5,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 const here = path.dirname(fileURLToPath(import.meta.url)),
   output = path.join(here, "artifacts"),
-  name = "gazeaide-standalone-1.1.0",
+  name = `gazeaide-standalone-${VERSION}`,
   stage = path.join(output, name);
 await fs.mkdir(output, { recursive: true });
 await fs.rm(stage, { recursive: true, force: true });
@@ -59,8 +60,8 @@ await fs.writeFile(
   JSON.stringify(
     {
       name,
-      version: "1.1.0",
-      sourceEdition: "GAZEAIDE Standalone 1.1.0",
+      version: VERSION,
+      sourceEdition: `GAZEAIDE Standalone ${VERSION}`,
       files: manifest,
     },
     null,

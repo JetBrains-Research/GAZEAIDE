@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 const html = await readFile(new URL('../../main/resources/gaze/web/bridge.html', import.meta.url), 'utf8');
-const callback = html.match(/onGaze: (\(finalGaze, raw, blink, facePresent\) => \{[\s\S]*?\n          \})/)[1];
+const callback = html.match(/onGaze: (\(finalGaze, raw, blink, facePresent, features, atMonoMs\) => \{[\s\S]*?\n          \})/)[1];
 test('bridge reports early script failures even before the native query is installed', () => {
   const listeners = new Map();
   const context = vm.createContext({ window: { addEventListener: (name, fn) => listeners.set(name, fn) } });
@@ -19,11 +19,11 @@ test('bridge reports early script failures even before the native query is insta
 function sample(raw, blink = false, present = true) {
   const lines = [];
   const onGaze = vm.runInNewContext('(' + callback + ')', { line: text => lines.push(text), params: new URLSearchParams('screenX=-1920&screenY=50') });
-  onGaze({ x: 900, y: 800 }, raw, blink, present);
+  onGaze({ x: 900, y: 800 }, raw, blink, present, null, 123);
   return lines;
 }
 test('bridge emits genuinely raw coordinates with desktop origin, not browser-filtered values', () => {
-  assert.deepEqual(sample({ x: 100.3, y: 200.6 }), ['OK -1820 251']);
+  assert.deepEqual(sample({ x: 100.3, y: 200.6 }), ['OK -1820 251 123']);
 });
 test('blinks, lost face and nonfinite gaze cannot be routed or used for calibration', () => {
   assert.deepEqual(sample({ x: 1, y: 2 }, true), ['BAD']);

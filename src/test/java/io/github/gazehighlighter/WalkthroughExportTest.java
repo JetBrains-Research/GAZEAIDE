@@ -58,7 +58,7 @@ class WalkthroughExportTest {
         var r = new ViewedRegion("/code.java", 2, 5, "résultat", "String x = \"Ω\";", 12, "MOUSE_SIMULATION");
         Path file = GazeSessionExporter.exportJson(session(visit(r, 1000, 800)), temp.resolve("session.json"));
         var json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
-        assertEquals(3, json.get("schemaVersion").getAsInt());
+        assertEquals(4, json.get("schemaVersion").getAsInt());
         var event = json.getAsJsonArray("events").get(0).getAsJsonObject();
         assertTrue(event.get("simulated").getAsBoolean()); assertEquals("MOUSE_SIMULATION", event.get("inputKind").getAsString());
         assertEquals(12, event.getAsJsonObject("region").get("documentStamp").getAsLong());

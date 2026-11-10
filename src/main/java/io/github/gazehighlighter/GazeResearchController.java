@@ -31,7 +31,7 @@ final class GazeResearchController implements GazeResearchPanel.Controller {
         return new GazeResearchPanel.View(currentInput(), options.paused, tracker.isRunning(), tracker.isStarting(),
                 tracker.isTrackingValid(), input.isCalibrated(), GazeCalibrationDialog.isActive() || GazePersonalizationDialog.isActive(), recording.isRecording(),
                 GazeRecordingService.isAnyRecording(), recording.isRecording() ? recording.eventCount() : last == null ? 0 : last.events.size(),
-                recording.isRecording() ? Math.max(0, System.currentTimeMillis() - recording.getStartMs()) : last == null ? 0 : last.durationMs(),
+                recording.isRecording() ? Math.max(0, GazeClock.now() - recording.getStartMs()) : last == null ? 0 : last.durationMs(),
                 last != null && (!last.events.isEmpty() || last.blink != null), recording.isLastSessionExported(), research.activeScenario(profile), profile,
                 !recording.isRecording() && last != null && last.metadata != null ? last.metadata.labels() : research.labels(), JetBrainsAiBridge.status(),
                 GazeModeService.getInstance(project).getTarget(), tracker.getStatusMessage());
@@ -156,6 +156,13 @@ final class GazeResearchController implements GazeResearchPanel.Controller {
         if (currentInput() == GazeResearchPanel.Input.WEBCAM && !UniteyeGazeService.getInstance().isTrackingValid()) {
             GazeNotify.warn(project, "Wait for a valid webcam gaze sample before starting a session."); return false;
         }
+        if(currentInput()==GazeResearchPanel.Input.WEBCAM) {
+            var frame=com.intellij.openapi.wm.WindowManager.getInstance().getFrame(project);
+            var display=java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+            if(frame==null||frame.getGraphicsConfiguration()==null||!frame.getGraphicsConfiguration().getDevice().equals(display)) {
+                GazeNotify.warn(project,"Move the IDE to the calibrated primary display before starting a webcam session.");return false;
+            }
+        }
         if(collectBlinks() && currentInput() != GazeResearchPanel.Input.WEBCAM) {
             GazeNotify.warn(project,"Blink collection requires a real webcam.");return false;
         }
@@ -176,7 +183,8 @@ final class GazeResearchController implements GazeResearchPanel.Controller {
         return GazeSessionLibrary.getInstance(project).sessions().stream().map(s -> new GazeResearchPanel.SavedSession(
                 GazeSessionStore.id(s), format.format(Instant.ofEpochMilli(s.startMs)) + " · "
                 + (s.metadata == null || s.metadata.labels().participant().isBlank() ? "unlabelled" : s.metadata.labels().participant())
-                + (s.metadata == null || s.metadata.labels().task().isBlank() ? "" : " · " + s.metadata.labels().task()))).toList();
+                + (s.metadata == null || s.metadata.labels().task().isBlank() ? "" : " · " + s.metadata.labels().task())
+                + (s.inProgress ? " · recovered checkpoint" : ""))).toList();
     }
     @Override public boolean openSession(String id) {
         var session = GazeSessionLibrary.getInstance(project).sessions().stream().filter(s -> GazeSessionStore.id(s).equals(id)).findFirst();
@@ -204,8 +212,8 @@ final class GazeResearchController implements GazeResearchPanel.Controller {
                     default -> throw new IllegalStateException();
                 };
                 AnAction registered = ActionManager.getInstance().getAction("io.github.gazehighlighter." + id);
-                if (registered != null) registered.actionPerformed(AnActionEvent.createFromAnAction(registered,
-                        null, ActionPlaces.TOOLWINDOW_CONTENT, SimpleDataContext.getProjectContext(project)));
+                if (registered != null) com.intellij.openapi.actionSystem.ex.ActionUtil.invokeAction(registered,
+                        SimpleDataContext.getProjectContext(project), ActionPlaces.TOOLWINDOW_CONTENT, null, null);
             }
         }
     }

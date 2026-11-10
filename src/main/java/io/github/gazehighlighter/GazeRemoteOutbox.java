@@ -36,7 +36,10 @@ final class GazeRemoteOutbox {
                     if (entry == null || !entry.localKey.matches("[a-f0-9]{24}") || !file.getFileName().toString().equals(entry.localKey + ".json") || !entry.binding.matches("[a-f0-9]{24}")
                             || entry.payload == null || !GazeRemotePayload.PROTOCOL.equals(entry.payload.get("protocol").getAsString())) throw new IOException();
                     entries.add(entry);
-                } catch (RuntimeException ex) { throw new IOException("Upload queue contains an unreadable entry. Local session files are unaffected."); }
+                } catch (RuntimeException | IOException ex) {
+                    Path quarantine=directory.resolve("unreadable");Files.createDirectories(quarantine);
+                    try{Files.move(file,quarantine.resolve(file.getFileName()+"-"+UUID.randomUUID()),StandardCopyOption.REPLACE_EXISTING);}catch(IOException ignored){/* Continue processing independent entries. */}
+                }
             }
         }
         return List.copyOf(entries);

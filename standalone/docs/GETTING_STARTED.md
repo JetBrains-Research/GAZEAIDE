@@ -10,7 +10,7 @@ You need [Node.js 22+](https://nodejs.org/en/download) and a modern browser. A w
 
 1. Download/extract the standalone release ZIP, or download/clone this source repository.
 2. In the packaged standalone folder, double-click **Start GAZEAIDE.command** on macOS, or open Terminal there and run `node launch.mjs`. From the repository root, run `node standalone/launch.mjs`.
-3. Keep the terminal open. Open <http://127.0.0.1:8768/> if needed. No web hosting or npm install is required.
+3. Keep the terminal open. If needed, open the private launch URL printed there. Keep its access key private. No web hosting or npm install is required.
 4. If the launcher says Node is missing, install Node, reopen Terminal and check `node --version`. If the port is occupied, open the existing app or stop its terminal with Ctrl+C. Independent instances need both a different `--port` and a different `--data` folder.
 
 Do not change browser window size or display geometry during webcam recording. Stop older GAZEAIDE versions before running an update against the same saved library.
@@ -50,7 +50,7 @@ MCP supplies captured context when called. It cannot paint highlights in native 
 
 ## Webcam
 
-1. Select **Webcam eye tracking**, click **Connect webcam**, and allow camera access if prompted. Pinned dependencies load from external CDNs; check network, camera permission, face visibility and other camera-using apps if startup fails.
+1. Select **Webcam eye tracking**, click **Connect webcam**, and allow camera access if prompted. All runtime and model dependencies are bundled; check camera permission, face visibility and other camera-using apps if startup fails. A checksum error requires restoring or rebuilding the package.
 2. Click **Calibrate**, follow nine training targets and five independent accuracy-check targets. Insufficient captures can extend to six seconds. After three failed attempts, **Retry this target** keeps completed targets while the guide remains open. You may repeat it; targets are never skipped to force success.
 3. Improve frontal lighting and face framing when samples are missing. Review the accuracy result before saving. Cancel/close/reload discards an unfinished run and retains the earlier saved calibration.
 4. Try **Extra steady** for more smoothing and delay. It can reduce jitter, not correct a large position error. Use larger text or Mouse proxy while troubleshooting. Recalibrate after moving camera, seating or display/window geometry.

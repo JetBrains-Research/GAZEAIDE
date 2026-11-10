@@ -5,17 +5,23 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorFactoryEvent;
 import com.intellij.openapi.editor.event.EditorFactoryListener;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.startup.StartupActivity;
+import com.intellij.openapi.startup.ProjectActivity;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import org.jetbrains.annotations.NotNull;
 
-public class GazeHighlighterStartupActivity implements StartupActivity.DumbAware {
+public class GazeHighlighterStartupActivity implements ProjectActivity {
 
-    @Override
+    @Override public Object execute(@NotNull Project project,@NotNull kotlin.coroutines.Continuation<? super kotlin.Unit> continuation) {
+        ApplicationManager.getApplication().invokeLater(()->{if(!project.isDisposed())runActivity(project);});
+        return kotlin.Unit.INSTANCE;
+    }
     public void runActivity(@NotNull Project project) {
+        project.getMessageBus().connect(project).subscribe(com.intellij.openapi.project.ProjectManager.TOPIC,new com.intellij.openapi.project.ProjectManagerListener(){
+            @Override public void projectClosing(@NotNull Project closing){if(project.equals(closing)) {var r=GazeRecordingService.getInstance(project);if(r.isRecording())r.stop();}}
+        });
         EditorFactory factory = EditorFactory.getInstance();
 
         // Attach to already-open editors

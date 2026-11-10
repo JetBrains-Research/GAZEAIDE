@@ -1,0 +1,32 @@
+name: Validate
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/sync-version.mjs --check
+      - run: node --input-type=module -e "import {verifyAssets} from './standalone/lib/assets.mjs'; await verifyAssets();"
+      - run: node --test standalone/test/*.test.mjs src/test/js/*.test.mjs
+      - run: node standalone/build-release.mjs
+      - run: node --test standalone/artifacts/gazeaide-standalone-*/test/*.test.mjs
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: jetbrains
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew test buildPlugin verifyPluginStructure verifyPlugin
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugin-verifier
+          path: build/reports/pluginVerifier

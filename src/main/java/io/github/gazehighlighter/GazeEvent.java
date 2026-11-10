@@ -51,4 +51,17 @@ public final class GazeEvent {
         this.simulated   = simulated;
         this.region      = region;
     }
+    /** New files use canonical provenance; old MOUSE/WEBCAM files remain readable. */
+    static final class Adapter implements com.google.gson.JsonSerializer<GazeEvent>,com.google.gson.JsonDeserializer<GazeEvent> {
+        private final com.google.gson.Gson legacy=new com.google.gson.Gson();
+        public com.google.gson.JsonElement serialize(GazeEvent e,java.lang.reflect.Type t,com.google.gson.JsonSerializationContext context) {
+            var value=legacy.toJsonTree(e).getAsJsonObject();value.addProperty("source",e.inputLabel());value.addProperty("inputKind",e.inputLabel());return value;
+        }
+        public GazeEvent deserialize(com.google.gson.JsonElement value,java.lang.reflect.Type t,com.google.gson.JsonDeserializationContext context) {
+            var object=value.deepCopy().getAsJsonObject();String source=object.has("inputKind")?object.get("inputKind").getAsString():object.get("source").getAsString();
+            if(source.equals("MOUSE_SIMULATION")){object.addProperty("source","WEBCAM");object.addProperty("simulated",true);}
+            else if(source.equals("MOUSE_PROXY"))object.addProperty("source","MOUSE");
+            return legacy.fromJson(object,GazeEvent.class);
+        }
+    }
 }

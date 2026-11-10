@@ -56,16 +56,16 @@
         const engine = new UnitEyeWeb({
           mock,
           onStatus: stage => line('STATUS ' + stage),
-          onEyeSample: s => line('EYE ' + s.atMs + ' ' + (s.face ? 1 : 0) + ' ' + (Number.isFinite(s.left) ? s.left : -1) + ' ' + (Number.isFinite(s.right) ? s.right : -1)),
+          onEyeSample: s => line('EYE ' + s.atMonoMs + ' ' + (s.face ? 1 : 0) + ' ' + (Number.isFinite(s.left) ? s.left : -1) + ' ' + (Number.isFinite(s.right) ? s.right : -1)),
           modelUrl: 'models/eyemu.onnx',
           // Map gaze onto real OS screen pixels (what GazeDispatcher.routeScreenPoint expects),
           // not this hidden page's own viewport size.
           screenW: Number(params.get('screenW')) || window.screen.width,
           screenH: Number(params.get('screenH')) || window.screen.height,
           // Send raw EyeMU coordinates. Calibration and interaction filtering belong to Java.
-          onGaze: (finalGaze, raw, blink, facePresent) => {
+          onGaze: (finalGaze, raw, blink, facePresent, features, atMonoMs) => {
             if (!facePresent || blink || !raw || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) { line('BAD'); return; }
-            line('OK ' + Math.round(raw.x + (Number(params.get('screenX')) || 0)) + ' ' + Math.round(raw.y + (Number(params.get('screenY')) || 0)));
+            line('OK ' + Math.round(raw.x + (Number(params.get('screenX')) || 0)) + ' ' + Math.round(raw.y + (Number(params.get('screenY')) || 0)) + ' ' + atMonoMs);
           },
         });
         await engine.init();

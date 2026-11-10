@@ -12,6 +12,8 @@ GAZEAIDE was started by **[Heidi Albarazi](https://heidialbarazi.me/)** during h
 
 Both editions now support opt-in blink observations and a longer-term personal rested reference. See the [step-by-step guide and measurement limits](docs/BLINK_ACTIVITY.md). The 1.0.0 release below predates this feature; build the current source for 1.1.0.
 
+See the [recording, security and measurement hardening notes](docs/HARDENING-2026-11-10.md) for the current storage format, recovery limits and deferred work.
+
 ## Start
 
 New to the project? Read [the first-run guide](docs/GETTING_STARTED.md).
@@ -24,7 +26,8 @@ Double-click **Start GAZEAIDE.command** to start the server and open your browse
 npm start
 ```
 
-Open [GAZEAIDE at http://127.0.0.1:8768](http://127.0.0.1:8768). The default project contains the
+Open the private launch URL printed in the terminal. It contains a per-launch access key;
+keep it private. The default project contains the
 same `GazeReviewDemo.java` source used by the plugin. To browse a project:
 
 ```sh
@@ -66,8 +69,8 @@ not silently enable it. Names are lexical matches, not resolved program referenc
 ## Webcam, calibration and response
 
 Choose Webcam, explicitly connect, and allow camera access in the browser if desired. The
-vendored adapter loads pinned ONNX Runtime and MediaPipe dependencies from their existing CDNs;
-network access is required unless cached. Frames are processed locally and are not recorded or
+vendored adapter loads bundled, checksum-verified ONNX Runtime, MediaPipe, WASM and model assets;
+webcam startup works offline. Frames are processed locally and are not recorded or
 uploaded. Camera hardware and browser permission behavior require manual validation.
 
 Calibration uses nine training targets followed by five distinct check targets. An attempt allows
@@ -189,13 +192,19 @@ files have mode 0600; generated state is excluded from the release. Source files
 edit in your editor and use Reload source. Binary/secret files, symlink escapes and files over
 500 KB are rejected by the project reader. File listing is bounded to 2,500 entries.
 
-Stopped sessions save atomically. During recording a five-second checkpoint includes the current
-visit as of that checkpoint without splitting it in the live recorder. A recovered checkpoint is
-labelled in-progress, not a complete recording. Browser close/crash may lose time after the last
-successful checkpoint. Exports/imports are capped at 32 MiB for this prototype. The session library
-is the selected data folder; use distinct folders to separate projects or studies.
+New recordings use an append journal: closed visits are sent in bounded, idempotent
+batches, with each region snapshot transmitted/stored once. Active visits and mutable
+metadata checkpoint every five seconds; closed visits are queued within 250 ms.
+Recovered recordings are explicitly marked in progress. A process crash can lose
+queued writes and the interval since the last active checkpoint. Stop awaits saving.
+The 32 MiB/100,000-visit limits remain on legacy snapshot imports; they no longer cap
+new journal recordings. Library records are loaded with their captured source versions.
+Open the private launch URL from the terminal; an unauthenticated base URL contains
+no API key. Keep that URL private and retain the terminal while using the companion.
 
-Local **JSON schema 3** preserves plugin-compatible event field names and adds edition/version,
+Use distinct data folders to separate projects or studies.
+
+Local **JSON schema 4** preserves plugin-compatible event field names and adds edition/version,
 walkthrough and explicit AI-request metadata. `documentStamp` is a deterministic safe-integer
 content fingerprint in this edition, not the IDE's modification counter or a Git revision. The
 plugin itself does not import external exports. Standalone can import plugin JSON and its own

@@ -33,10 +33,10 @@ public final class GazeContextService {
     GazeAssistanceOffer.Offer offer(boolean enabled) {
         if (!enabled) return null;
         if (pendingEligible && preparedRegion != null && pendingKey != null)
-            offers.prepare(pendingKey, preparedPrompt, preparedRegion, pendingPurpose, System.currentTimeMillis());
+            offers.prepare(pendingKey, preparedPrompt, preparedRegion, pendingPurpose, GazeClock.now());
         return offers.current();
     }
-    void dismissOffer() { offers.dismiss(System.currentTimeMillis()); }
+    void dismissOffer() { offers.dismiss(GazeClock.now()); }
     void interaction(String stage) { lastInteraction = "Last handoff action: " + stage; }
     void waiting(ViewedRegion region, long elapsedMs, long thresholdMs) {
         waitingRegion = region; waitingMs = elapsedMs; delayMs = thresholdMs;
@@ -62,17 +62,17 @@ public final class GazeContextService {
         return GazeSessionContext.reconstruct(session);
     }
     public static GazeContextService getInstance(Project project) { return project.getService(GazeContextService.class); }
-    public void viewed(ViewedRegion region) { history.add(region, System.currentTimeMillis()); }
+    public void viewed(ViewedRegion region) { history.add(region, GazeClock.now()); }
     public void invalidate(String path) {
         history.invalidate(path);
         // A related snapshot may also occur in the prompt. Clear all transient prepared context
         // on a source edit rather than hand an apparently current multi-region question to AI.
         preparedPrompt = null; preparedRegion = null; pendingEligible = false; pendingKey = null;
-        offers.dismiss(System.currentTimeMillis());
+        offers.dismiss(GazeClock.now());
     }
-    public void clear() { history.clear(); preparedPrompt = null; preparedRegion = null; waitingRegion = null; pendingKey = null; pendingEligible = false; offers.dismiss(System.currentTimeMillis()); }
+    public void clear() { history.clear(); preparedPrompt = null; preparedRegion = null; waitingRegion = null; pendingKey = null; pendingEligible = false; offers.dismiss(GazeClock.now()); }
     public List<ViewedRegion> recent(String source) {
-        return history.recent(System.currentTimeMillis(), source).stream().filter(r -> {
+        return history.recent(GazeClock.now(), source).stream().filter(r -> {
             VirtualFile file = LocalFileSystem.getInstance().findFileByPath(r.filePath());
             Document doc = file == null ? null : FileDocumentManager.getInstance().getCachedDocument(file);
             return doc != null && doc.getModificationStamp() == r.documentStamp();

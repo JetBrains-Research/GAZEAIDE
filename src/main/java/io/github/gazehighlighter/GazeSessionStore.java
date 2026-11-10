@@ -10,7 +10,7 @@ import java.util.*;
 
 /** Local session persistence; independent of IDE services so restart/round-trip behavior is testable. */
 final class GazeSessionStore {
-    private static final Gson JSON = new GsonBuilder().create();
+    static final Gson JSON = new GsonBuilder().registerTypeAdapter(GazeEvent.class,new GazeEvent.Adapter()).create();
     private final Path directory;
     GazeSessionStore(Path directory) { this.directory = directory; }
     static String projectKey(String identity) {
@@ -38,7 +38,7 @@ final class GazeSessionStore {
                     GazeSession s = JSON.fromJson(Files.readString(file), GazeSession.class);
                     if (s == null || s.events == null || s.startMs <= 0 || s.endMs < s.startMs) continue;
                     result.add(new GazeSession(s.projectName, s.startMs, s.endMs, s.events, s.metadata,
-                            s.configurationChanges == null ? List.of() : s.configurationChanges, s.blink));
+                            s.configurationChanges == null ? List.of() : s.configurationChanges, s.blink,s.inProgress));
                 } catch (RuntimeException | IOException ignored) { /* One damaged recording must not hide the rest. */ }
             }
         }

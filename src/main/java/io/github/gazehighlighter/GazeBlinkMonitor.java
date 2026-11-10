@@ -4,7 +4,7 @@ import java.util.*;
 
 /** Local, opt-in bilateral eye-closure observations. Matched to standalone/lib/blinks.mjs. */
 public final class GazeBlinkMonitor {
-    public static final String POLICY = "webcam-blink-v1";
+    public static final String POLICY = "webcam-blink-v2";
     public record Config(String participant, String group, boolean reference, Integer fatigue, Integer effort, boolean suggestions) {
         public Config {
             participant=label(participant,"local-user"); group=label(group,"default-camera");
@@ -25,7 +25,7 @@ public final class GazeBlinkMonitor {
     private static double mad(List<Double> values) {double m=median(values);return median(values.stream().map(v->Math.abs(v-m)).toList());}
     static boolean usable(Window w) {
         return w!=null&&w.endMs>w.startMs&&w.endMs-w.startMs<=60000&&w.observedMs>=45000&&w.observedMs<=w.endMs-w.startMs&&(double)w.observedMs/(w.endMs-w.startMs)>=.75
-            &&w.closedMs>=0&&w.closedMs<=w.observedMs&&Double.isFinite(w.samplingHz)&&w.samplingHz>=10&&w.blinks>=0&&w.closedFraction!=null&&Double.isFinite(w.closedFraction)
+            &&w.closedMs>=0&&w.closedMs<=w.observedMs&&Double.isFinite(w.samplingHz)&&w.samplingHz>=25&&w.blinks>=0&&w.closedFraction!=null&&Double.isFinite(w.closedFraction)
             &&Math.abs(w.closedFraction-(double)w.closedMs/w.observedMs)<1e-8&&(w.blinks==0||(w.medianBlinkMs!=null&&Double.isFinite(w.medianBlinkMs)&&w.medianBlinkMs>=40&&w.medianBlinkMs<=700));
     }
     public static Reference reference(List<GazeSession> sessions,Config config,long beforeMs) {
@@ -33,7 +33,7 @@ public final class GazeBlinkMonitor {
         List<Entry> all=new ArrayList<>();Set<String> seen=new HashSet<>();
         for(var s:sessions) {
             var b=s.blink;
-            if(b==null||b.truncated||!POLICY.equals(b.policy)||!"WEBCAM".equals(b.inputKind)||b.config==null||!config.participant.equals(b.config.participant)||!config.group.equals(b.config.group)
+            if(s.inProgress||b==null||b.truncated||!POLICY.equals(b.policy)||!"WEBCAM".equals(b.inputKind)||b.config==null||!config.participant.equals(b.config.participant)||!config.group.equals(b.config.group)
                     ||!b.config.reference||(b.config.fatigue!=null&&b.config.fatigue>2)||s.endMs>=beforeMs||b.windows==null)continue;
             for(var w:b.windows)if(w!=null&&w.complete&&w.endMs-w.startMs==60000&&w.usable&&usable(w)&&w.endMs<=s.endMs&&w.endMs<beforeMs&&seen.add(s.researchRecordingId+":"+w.startMs))all.add(new Entry(w,s.researchRecordingId));
         }
@@ -105,7 +105,7 @@ public final class GazeBlinkMonitor {
     private Window window(Bin b,long end,boolean complete) {
         long from=start+b.index*60000L,duration=Math.max(1,end-from);double coverage=(double)b.observed/duration,hz=(b.frames-b.invalid)*1000.0/duration;
         return new Window(from,end,complete,b.observed,b.closed,b.frames,b.invalid,b.gaps,b.blinks,b.prolonged,b.observed>0?b.blinks*60000.0/b.observed:null,
-                b.blinks>0?median(b.durations):null,b.observed>0?(double)b.closed/b.observed:null,coverage,hz,b.observed>=45000&&coverage>=.75&&hz>=10);
+                b.blinks>0?median(b.durations):null,b.observed>0?(double)b.closed/b.observed:null,coverage,hz,b.observed>=45000&&coverage>=.75&&hz>=25);
     }
     public Data snapshot(long at) {
         long end=Math.max(start,at);List<Window> windows=new ArrayList<>(finished);

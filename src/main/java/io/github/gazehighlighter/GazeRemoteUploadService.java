@@ -91,8 +91,13 @@ public final class GazeRemoteUploadService implements Disposable {
     }
     void recordingStopped(GazeSession session, GazeRemoteConnection atStart) {
         if (atStart == null || !atStart.equals(connection()) || !atStart.canUpload()) return;
-        if (busy.get()) { status = "Automatic upload skipped because another upload operation is running. Upload the recording manually from Results."; return; }
-        worker(() -> { requireSame(atStart); sendEntry(atStart, outbox.enqueue(session, atStart)); }, message -> {});
+        ApplicationManager.getApplication().executeOnPooledThread(()->{
+            try {
+                var entry=outbox.enqueue(session,atStart);recount();
+                if(busy.get()){status="Automatic upload queued. Retry pending uploads when the current operation finishes.";return;}
+                worker(()->{requireSame(atStart);sendEntry(atStart,entry);},message->{});
+            }catch(IOException e){status="Could not queue automatic upload. The full recording remains in the local library.";}
+        });
     }
     void retry(Consumer<String> done) {
         worker(() -> {

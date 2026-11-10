@@ -47,7 +47,7 @@ class GazeResearchMetadataTest {
                 List.of(new GazeSession.ConfigurationChange(0, false, initial), new GazeSession.ConfigurationChange(1500, true, initial)));
         String raw = Files.readString(GazeSessionExporter.exportJson(session, temp.resolve("research.json")));
         var json = JsonParser.parseString(raw).getAsJsonObject();
-        assertEquals(3, json.get("schemaVersion").getAsInt());
+        assertEquals(4, json.get("schemaVersion").getAsInt());
         assertEquals("P07", json.getAsJsonObject("metadata").getAsJsonObject("labels").get("participant").getAsString());
         assertTrue(json.getAsJsonArray("configurationChanges").get(1).getAsJsonObject().get("paused").getAsBoolean());
         assertFalse(raw.contains("apiKey")); assertFalse(raw.contains("baseUrl"));

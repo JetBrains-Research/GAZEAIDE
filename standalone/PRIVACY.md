@@ -4,7 +4,7 @@ GAZEAIDE is a local research application, not an anonymity or confidentiality gu
 
 ## What stays local
 
-Webcam frames are processed locally by the browser/JCEF tracker; this application does not record or upload those frames. Runtime/model assets are downloaded from the listed CDNs unless cached, so those services receive ordinary network metadata. Calibration and response summaries are saved locally; raw calibration-task samples are discarded after the task.
+Webcam frames are processed locally by the browser/JCEF tracker; this application does not record or upload those frames. Runtime/model assets are bundled and verified locally; starting the webcam no longer contacts CDNs. Calibration and response summaries are saved locally; raw calibration-task samples are discarded after the task.
 
 The standalone stores settings, sessions and agent examples in `standalone/.local/` by default, or your `--data` directory. The plugin uses the IDE's local system/settings storage, with records separated by project. Stopped recordings and exported JSON/CSV/HTML can include captured source text, file paths, timing, participant/task codes, conversation excerpts and manual notes. These exports may be sensitive even without video.
 
@@ -26,3 +26,9 @@ Bundled examples and test fixtures are synthetic. Review your own recordings, ex
 ## Optional blink observations (1.1)
 
 Enabled recordings store blink/closure events, timing bounds, minute-window metrics, quality flags, participant/camera group, optional start fatigue/effort ratings and a frozen personal reference. No video, images, raw landmarks or continuous eye-ratio samples are saved. These are personal behavioral data. References are derived from earlier explicitly rested local recordings. Explicit AI sends with context attached may include bounded blink summaries and self-ratings; previews and attachment opt-out still apply. The reduced remote study-upload payload excludes these fields. See [blink activity](docs/BLINK_ACTIVITY.md) for controls, interpretation limits and retention.
+
+The standalone uses a random capability in the private launch URL fragment. It is
+removed from the address bar after opening and retained in that tab's session
+storage for reloads. Public HTML contains no capability. Connection files and the
+data directory are restricted to the operating-system user. Treat the launch URL
+as access to the local companion, including its enabled Codex controls.

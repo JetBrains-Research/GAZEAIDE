@@ -29,7 +29,7 @@ class GazeTrackerStartupTest {
         var startup = new GazeTrackerStartup(0);
         startup.advance(RUNTIME, 100);
         assertFalse(startup.advance(RUNTIME, 100_000));
-        assertTrue(startup.timeout(120_100).contains("cdn.jsdelivr.net"));
+        assertTrue(startup.timeout(120_100).contains("bundled runtime"));
         assertTrue(startup.advance(CAMERA, 120_101));
         assertFalse(startup.advance(PAGE, 120_102));
         assertEquals(CAMERA, startup.stage());

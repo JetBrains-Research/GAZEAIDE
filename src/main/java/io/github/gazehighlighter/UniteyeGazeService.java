@@ -83,12 +83,13 @@ public final class UniteyeGazeService implements Disposable {
     // ── Coalescing of gaze samples onto the EDT (cap at one pending routing) ──
     private volatile int     latestX;
     private volatile int     latestY;
+    private volatile long latestCaptureMs;
     private volatile boolean routePending;
     private volatile boolean trackingValid;
     private volatile long lastGoodMs, routeGeneration;
     private final Timer validityTimer = new Timer(250, e -> {
         checkStartup();
-        if (running && trackingValid && System.currentTimeMillis() - lastGoodMs > 1000) {
+        if (running && trackingValid && GazeClock.now() - lastGoodMs > 1000) {
             statusMessage = "No recent valid gaze sample. Check face framing and lighting."; invalidateTracking();
         }
     });
@@ -176,7 +177,7 @@ public final class UniteyeGazeService implements Disposable {
         validityTimer.start();
         long generation = ++lifecycleGeneration;
         pointFilter.reset();
-        lastGoodMs = 0;
+        lastGoodMs = 0;bridgeClockOffset=Double.NaN;
         if (GazeInputSettings.getInstance().isMock()) {
             statusMessage = "Mouse simulation active; no eye tracking.";
             startup = null;
@@ -319,6 +320,13 @@ public final class UniteyeGazeService implements Disposable {
         return null;
     }
 
+    private volatile double bridgeClockOffset = Double.NaN;
+    private long captureTime(double mono) {
+        if (!Double.isFinite(mono) || mono < 0) throw new IllegalArgumentException("Invalid capture time");
+        if (!Double.isFinite(bridgeClockOffset)) bridgeClockOffset = GazeClock.now() - mono;
+        return Math.round(bridgeClockOffset + mono);
+    }
+
     private static long monotonicMs() { return System.nanoTime() / 1_000_000; }
 
     private void advanceStartup(GazeTrackerStartup.Stage stage) {
@@ -406,7 +414,7 @@ public final class UniteyeGazeService implements Disposable {
         var pointer = MouseInfo.getPointerInfo();
         if (pointer == null) { invalidateTracking(); return; }
         Point p = pointer.getLocation();
-        trackingValid = true; lastGoodMs = System.currentTimeMillis();
+        trackingValid = true; lastGoodMs = GazeClock.now();
         queueRoute(p.x, p.y);
     }
 
@@ -419,31 +427,34 @@ public final class UniteyeGazeService implements Disposable {
             if (GazeInputSettings.getInstance().isMock() || GazeInputSettings.getInstance().getInputMode() != GazeInputMode.WEBCAM) return;
             String[] parts=line.split("\\s+");
             if(parts.length==5) try {
-                long at=Long.parseLong(parts[1]);
-                if(Math.abs(System.currentTimeMillis()-at)<=2000)
+                long at=captureTime(Double.parseDouble(parts[1]));
+                if(at <= GazeClock.now() && GazeClock.now()-at<=2000)
                     GazeRecordingService.eyeSampleForOpenProjects(at,Double.parseDouble(parts[3]),Double.parseDouble(parts[4]),parts[2].equals("1"));
-            } catch(NumberFormatException ignored) { /* Drop malformed observations, never infer a blink from them. */ }
+            } catch(IllegalArgumentException ignored) { /* Drop malformed observations, never infer a blink from them. */ }
         } else if (line.startsWith("OK ")) {
             String[] parts = line.split("\\s+");
             if (parts.length >= 3) {
                 try {
                     int rawX = Integer.parseInt(parts[1]);
                     int rawY = Integer.parseInt(parts[2]);
+                    long at = parts.length >= 4 ? captureTime(Double.parseDouble(parts[3])) : GazeClock.now();
+                    long age = GazeClock.now() - at;
+                    if (age < 0 || age > 1000) return;
 
                     if ((!running && !starting) || GazeInputSettings.getInstance().getInputMode() != GazeInputMode.WEBCAM) return;
                     advanceStartup(GazeTrackerStartup.Stage.READY);
                     starting = false; running = true;
                     trackingValid = true;
                     statusMessage = "Valid gaze samples received.";
-                    lastGoodMs = System.currentTimeMillis();
+                    lastGoodMs = GazeClock.now();
                     Consumer<Point> tap = rawSampleListener;
                     if (tap != null) { tap.accept(new Point(rawX, rawY)); return; }
                     GazeInputSettings settings = GazeInputSettings.getInstance();
                     GazeCalibration calibration = settings.getCalibration();
                     Point filtered = pointFilter.update(calibration.x(rawX, rawY), calibration.y(rawX, rawY),
                             System.nanoTime() / 1_000_000, settings.getResponse().smoothingMs);
-                    if (filtered != null) queueRoute(filtered.x, filtered.y);
-                } catch (NumberFormatException ignored) { /* skip malformed sample */ }
+                    if (filtered != null) queueRoute(filtered.x, filtered.y, at);
+                } catch (IllegalArgumentException ignored) { /* skip malformed sample */ }
             }
         } else if (line.equals("READY")) {
             advanceStartup(GazeTrackerStartup.Stage.READY);
@@ -465,10 +476,12 @@ public final class UniteyeGazeService implements Disposable {
         pointFilter.reset();
         if (!trackingValid) return;
         trackingValid = false; ++routeGeneration;
-        GazeDispatcher.suspendAllProjects(false);
+        GazeDispatcher.trackingGapAllProjects();
     }
 
-    private void queueRoute(int x, int y) {
+    private void queueRoute(int x,int y){queueRoute(x,y,GazeClock.now());}
+    private void queueRoute(int x, int y,long capturedAtMs) {
+        latestCaptureMs=capturedAtMs;
         latestX = x;
         latestY = y;
         if (routePending) return;
@@ -485,7 +498,7 @@ public final class UniteyeGazeService implements Disposable {
         for (Project project : ProjectManager.getInstance().getOpenProjects()) {
             if (project.isDisposed()) continue;
             GazeDispatcher dispatcher = GazeDispatcher.getInstance(project);
-            if (dispatcher != null) dispatcher.routeScreenPoint(x, y);
+            if (dispatcher != null) dispatcher.routeScreenPoint(x, y,latestCaptureMs);
         }
     }
 
@@ -501,6 +514,21 @@ public final class UniteyeGazeService implements Disposable {
             try (InputStream in = UniteyeGazeService.class.getResourceAsStream(WEB_ROOT_RESOURCE + "/" + asset)) {
                 if (in == null) throw new IOException("bundled resource " + asset + " not found");
                 Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
+        try(InputStream manifest=UniteyeGazeService.class.getResourceAsStream(WEB_ROOT_RESOURCE+"/runtime/MANIFEST.json")) {
+            if(manifest==null)throw new IOException("Bundled runtime manifest is missing");
+            var data=com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(manifest,StandardCharsets.UTF_8)).getAsJsonObject();
+            for(var item:data.getAsJsonArray("files")) {
+                var entry=item.getAsJsonObject();String relative=entry.get("path").getAsString();
+                Path dest=dir.resolve("runtime").resolve(relative).normalize();if(!dest.startsWith(dir.resolve("runtime")))throw new IOException("Invalid runtime path");
+                Files.createDirectories(dest.getParent());
+                try(InputStream in=UniteyeGazeService.class.getResourceAsStream(WEB_ROOT_RESOURCE+"/runtime/"+relative)) {
+                    if(in==null)throw new IOException("Bundled runtime asset is missing: "+relative);
+                    byte[] bytes=in.readAllBytes();String actual=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+                    if(!actual.equals(entry.get("sha256").getAsString()))throw new IOException("Bundled runtime checksum failed: "+relative);
+                    Files.write(dest,bytes);
+                }catch(java.security.NoSuchAlgorithmException e){throw new IOException(e);}
             }
         }
         dir.toFile().deleteOnExit();
@@ -561,7 +589,8 @@ public final class UniteyeGazeService implements Disposable {
 
         private static String contentType(String path) {
             if (path.endsWith(".html")) return "text/html; charset=utf-8";
-            if (path.endsWith(".js")) return "text/javascript; charset=utf-8";
+            if (path.endsWith(".js") || path.endsWith(".mjs")) return "text/javascript; charset=utf-8";
+            if (path.endsWith(".wasm")) return "application/wasm";
             if (path.endsWith(".onnx")) return "application/octet-stream";
             return "application/octet-stream";
         }

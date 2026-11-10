@@ -16,11 +16,13 @@ and model are retained from the vendored source; this is not an unmodified distr
 
 The UnitEye GPL-3.0 text and the separately declared EyeMU GPL-2.0 text are included alongside these notices as `LICENSE-uniteye.txt` and `LICENSE-EyeMU.txt`. Retain both notices and source links. GAZEAIDE project code is licensed GPL-3.0-only under its project LICENSE. The third-party code/model retain their separate upstream terms; the project license does not relicense the model. See LICENSING.md and NOTICE.md in the source/standalone distribution, or META-INF/NOTICE.md in the plugin JAR, for attribution.
 
-At runtime, the bundled `uniteye-cv.js` additionally loads, over the network, from their own
-CDNs (not vendored, not modified):
+The ONNX Runtime 1.20.1 runtime (MIT), MediaPipe Tasks Vision 1.0.0 runtime
+(Apache-2.0), required WASM variants and Google's version-1 float16 face-landmarker
+model are bundled for offline use. The runtime manifest records original download
+URLs, sizes and SHA-256 checksums. Upstream license texts accompany the assets;
+model assets retain their upstream terms. No CDN is contacted at camera startup.
 
-- [`onnxruntime-web@1.20.1`](https://www.npmjs.com/package/onnxruntime-web) (MIT) via jsDelivr
-- [`@mediapipe/tasks-vision@1.0.0`](https://www.npmjs.com/package/@mediapipe/tasks-vision) (Apache-2.0) via jsDelivr, plus Google's `face_landmarker.task` model via `storage.googleapis.com`
-
-This means webcam mode requires **internet access** on first use (and thereafter, unless the
-embedded browser's HTTP cache retains them).
+The tracked source is `standalone/public/vendor/runtime/`. Gradle copies that same
+asset set into `gaze/web/runtime/` in the plugin. Both editions verify the manifest
+before serving/extracting the runtime; the standalone release manifest also covers
+these files. See the runtime's `MANIFEST.json` for exact provenance.

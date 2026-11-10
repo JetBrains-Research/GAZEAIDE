@@ -27,6 +27,17 @@ public class GazeMouseListener implements EditorMouseMotionListener {
     public GazeMouseListener(Editor editor, GazeDispatcher dispatcher) {
         this.editor     = editor;
         this.dispatcher = dispatcher;
+        editor.getScrollingModel().addVisibleAreaListener(event -> {
+            if(!isMouseMode() || editor.isDisposed())return;
+            GazeEngine engine=dispatcher.engineFor(editor);if(engine==null)return;
+            engine.onExit();
+            var pointer=MouseInfo.getPointerInfo();if(pointer==null)return;
+            var component=editor.getContentComponent();if(!component.isShowing())return;
+            Point p=pointer.getLocation();javax.swing.SwingUtilities.convertPointFromScreen(p,component);
+            if(component.getVisibleRect().contains(p)) {
+                var pos=editor.xyToLogicalPosition(p);engine.onGaze(pos.line,pos.column);
+            }
+        });
 
         editor.getContentComponent().addMouseListener(new MouseAdapter() {
             @Override public void mouseExited(MouseEvent e) {

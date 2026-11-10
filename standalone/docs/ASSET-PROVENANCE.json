@@ -7,7 +7,7 @@
   {
     "pluginSource": "src/main/resources/gaze/web/uniteye-cv.js",
     "standaloneAsset": "standalone/public/vendor/uniteye-cv.js",
-    "sha256": "893aaa87deda34740c92a071b126b0ee1a35811129eab7e64cdd6ca822a3625e"
+    "sha256": "5011d5e319849025a2c93d4f757d7894b17a9f4336352ab1d4427e21fe9ea707"
   },
   {
     "pluginSource": "src/main/resources/gaze/web/models/eyemu.onnx",

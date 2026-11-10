@@ -1,3 +1,4 @@
+import {VERSION} from "./version.mjs";
 import { blinkStatus } from "./blinks.mjs";
 import { escape, key } from "./core.mjs";
 const known = (v, list) => (list.includes(v) ? v : "UNKNOWN");
@@ -113,7 +114,7 @@ export function reduced(
     studyId,
     participantId,
     edition: "standalone",
-    editionVersion: "1.1.0",
+    editionVersion: VERSION,
   };
   if (kind === "connection_test") return out;
   if (
@@ -122,7 +123,7 @@ export function reduced(
   )
     throw new Error("Reduced upload exceeds the connector event limit.");
   Object.assign(out, {
-    pluginVersion: "1.1.0",
+    pluginVersion: VERSION,
     taskCode,
     durationMs: session.durationMs,
     initialConfiguration: reducedConfiguration(
@@ -165,9 +166,9 @@ export function reportHtml(
   const rows = session.events
     .map((e, i) => ({ e, i }))
     .filter(({ i }) => !traceEdits[i]?.pruned);
-  const summary = `${session.events.length} original visits · ${session.durationMs / 1000} s session duration · ${session.events.reduce((n, e) => n + e.dwellMs, 0) / 1000} s exposure`;
+  const summary = `${session.events.length} original visits · ${session.durationMs / 1000} s session duration · ${session.events.reduce((n, e) => n + e.dwellMs, 0) / 1000} s exposure${session.inProgress ? " · Recovered checkpoint; recording may be incomplete" : ""}`;
   const safe = JSON.stringify(
     rows.map(({ e, i }) => ({ ...e, note: traceEdits[i]?.note || "" })),
   ).replaceAll("<", "\\u003c");
-  return `<!doctype html><meta charset="utf-8"><title>GAZEAIDE viewing report</title><style>body{font:15px/1.6 system-ui;max-width:1000px;margin:40px auto;padding:20px;color:#183a35}pre{white-space:pre-wrap;background:#f0f5f2;padding:20px}input{width:100%}article{border-top:1px solid #ccdcd5;margin:20px 0}small{color:#607c70}td,th{padding:7px;text-align:left;border-bottom:1px solid #ddd}table{width:100%}</style><h1>GAZEAIDE · Standalone viewing report</h1><p>${escape(summary)}</p>${session.blink ? `<h2>Blink activity</h2><pre>${escape(blinkStatus(session.blink))}</pre>` : ""}<p>Viewing visits are exposure estimates, not physiological fixations, comprehension, correctness or completed review. Inputs retain their provenance. Legacy “explained” marks local context preparation, not sending or reading an AI answer.</p><p>Trace annotations and exclusions affect this exported report only; original events remain in JSON.</p><input aria-label="Replay visit" type="range" id="slider" min="0" max="${Math.max(0, rows.length - 1)}" value="0"><p id="at"></p><pre id="source"></pre><script type="application/json" id="events">${safe}</script><script>const rows=JSON.parse(document.getElementById('events').textContent);function show(){const e=rows[Number(document.getElementById('slider').value)];document.getElementById('at').textContent=e?e.file+':'+e.line+' ['+e.inputKind+'] '+e.dwellMs+' ms · '+(e.note||''):'No visits';document.getElementById('source').textContent=e?(e.region?.text||e.lineText):'';}document.getElementById('slider').oninput=show;show();</script><h2>Viewing trace</h2><table><tr><th>At</th><th>Location</th><th>Input</th><th>Exposure</th><th>Annotation</th></tr>${rows.map(({ e, i }) => `<tr><td>${e.elapsedMs} ms</td><td>${escape(e.file)}:${e.line}</td><td>${escape(e.inputKind)}</td><td>${e.dwellMs} ms</td><td>${escape(traceEdits[i]?.note)}</td></tr>`).join("")}</table><h2>Review walkthrough</h2>${walkthrough.map((s) => `<article><h3>${escape(s.region.label)}</h3><small>${escape(s.region.filePath)}:${s.region.firstLine}–${s.region.lastLine} [${escape(s.region.source)}] · ${s.reviewed ? "User marked reviewed" : "Not marked reviewed"}</small><pre>${escape(s.region.text)}</pre><p>${escape(s.notes)}</p></article>`).join("")}`;
+  return `<!doctype html><meta charset="utf-8"><title>GAZEAIDE viewing report</title><style>body{font:15px/1.6 system-ui;max-width:1000px;margin:40px auto;padding:20px;color:#183a35}pre{white-space:pre-wrap;background:#f0f5f2;padding:20px}input{width:100%}article{border-top:1px solid #ccdcd5;margin:20px 0}small{color:#607c70}td,th{padding:7px;text-align:left;border-bottom:1px solid #ddd}table{width:100%}</style><h1>GAZEAIDE · Standalone viewing report</h1><p>${escape(summary)}</p>${session.blink ? `<h2>Blink activity</h2><pre>${escape(blinkStatus(session.blink))}</pre>` : ""}<p>Viewing visits are exposure estimates, not physiological fixations, comprehension, correctness or completed review. Inputs retain their provenance. Legacy “explained” marks local context preparation, not sending or reading an AI answer.</p><p>Trace annotations and exclusions affect this exported report only; original events remain in JSON.</p><input aria-label="Replay visit" type="range" id="slider" min="0" max="${Math.max(0, rows.length - 1)}" value="0"><p id="at"></p><pre id="source"></pre><script type="application/json" id="events">${safe}</script><script>const rows=JSON.parse(document.getElementById('events').textContent);function show(){const e=rows[Number(document.getElementById('slider').value)];document.getElementById('at').textContent=e?e.file+':'+e.line+' ['+e.inputKind+'] '+e.dwellMs+' ms · '+(e.note||''):'No visits';document.getElementById('source').textContent=e?(e.region?.text||e.lineText):'';}document.getElementById('slider').oninput=show;show();</script><h2>Viewing trace</h2><table><tr><th>At</th><th>Location</th><th>Input</th><th>Exposure</th><th>Annotation</th></tr>${rows.map(({ e, i }) => `<tr><td>${escape(e.elapsedMs)} ms</td><td>${escape(e.file)}:${escape(e.line)}</td><td>${escape(e.inputKind)}</td><td>${escape(e.dwellMs)} ms</td><td>${escape(traceEdits[i]?.note)}</td></tr>`).join("")}</table><h2>Review walkthrough</h2>${walkthrough.map((s) => `<article><h3>${escape(s.region.label)}</h3><small>${escape(s.region.filePath)}:${escape(s.region.firstLine)}–${escape(s.region.lastLine)} [${escape(s.region.source)}] · ${s.reviewed ? "User marked reviewed" : "Not marked reviewed"}</small><pre>${escape(s.region.text)}</pre><p>${escape(s.notes)}</p></article>`).join("")}`;
 }

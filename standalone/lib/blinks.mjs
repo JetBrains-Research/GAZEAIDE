@@ -1,7 +1,7 @@
 import { csvCell } from "./core.mjs";
 // Threshold-crossing observations, not clinical blinks or a cognitive-load model.
-export const BLINK_POLICY = "webcam-blink-v1";
-export const BLINK_LIMITS = Object.freeze({ windowMs: 60000, maxGapMs: 120, minObservedMs: 45000, minHz: 10, maxEvents: 50000, maxWindows: 1440 });
+export const BLINK_POLICY = "webcam-blink-v2";
+export const BLINK_LIMITS = Object.freeze({ windowMs: 60000, maxGapMs: 120, minObservedMs: 45000, minHz: 25, maxEvents: 50000, maxWindows: 1440 });
 const median = a => a.length ? [...a].sort((a,b)=>a-b)[Math.floor(a.length/2)] : 0;
 const mad = a => { const m=median(a);return median(a.map(v=>Math.abs(v-m))); };
 const clip = s => String(s ?? "").trim().slice(0,120);
@@ -13,13 +13,13 @@ export function blinkConfig(c={}) {
 const same = (a,b) => a?.participant===b?.participant && a?.group===b?.group;
 export const usableBlinkWindow = w => !!w && Number.isFinite(w.startMs) && Number.isFinite(w.endMs) && w.endMs>w.startMs && w.endMs-w.startMs<=60000 &&
   Number.isFinite(w.observedMs) && w.observedMs>=45000 && w.observedMs<=w.endMs-w.startMs && w.observedMs/(w.endMs-w.startMs)>=.75 &&
-  Number.isFinite(w.closedMs) && w.closedMs>=0 && w.closedMs<=w.observedMs && Number.isFinite(w.samplingHz) && w.samplingHz>=10 &&
+  Number.isFinite(w.closedMs) && w.closedMs>=0 && w.closedMs<=w.observedMs && Number.isFinite(w.samplingHz) && w.samplingHz>=25 &&
   Number.isInteger(w.blinks) && w.blinks>=0 && Number.isFinite(w.closedFraction) && Math.abs(w.closedFraction-w.closedMs/w.observedMs)<1e-8 &&
   (w.blinks===0 || (Number.isFinite(w.medianBlinkMs) && w.medianBlinkMs>=40 && w.medianBlinkMs<=700));
 const displayWindow = w => w && ["observedMs","closedMs","frames","invalidSamples","gaps","blinks","prolongedClosures","coverage","samplingHz"].every(k=>Number.isFinite(w[k])&&w[k]>=0) &&
   ["blinkRatePerMinute","medianBlinkMs","closedFraction"].every(k=>w[k]===null || Number.isFinite(w[k])&&w[k]>=0);
 export function validBlinkData(b) {
-  return !!(b?.schemaVersion===1 && b.policy===BLINK_POLICY && b.inputKind==="WEBCAM" && b.config && typeof b.config.participant==="string" && b.config.participant.length<=120 && typeof b.config.group==="string" && b.config.group.length<=120 &&
+  return !!(b?.schemaVersion===1 && [BLINK_POLICY,"webcam-blink-v1"].includes(b.policy) && b.inputKind==="WEBCAM" && b.config && typeof b.config.participant==="string" && b.config.participant.length<=120 && typeof b.config.group==="string" && b.config.group.length<=120 &&
     b.indicator && ["COLLECTING","STALE","LOW_QUALITY_OR_SHORT","NEED_PERSONAL_REFERENCE","WITHIN_REFERENCE","ELEVATED_CLOSURE"].includes(b.indicator.state) &&
     (b.indicator.score===null || Number.isInteger(b.indicator.score)&&b.indicator.score>=0&&b.indicator.score<=100) &&
     (b.summary===null || displayWindow(b.summary)) &&
@@ -118,7 +118,7 @@ export class BlinkMonitor {
     const startMs=this.startMs+b.index*60000, duration=Math.max(1,endMs-startMs),coverage=b.observedMs/duration,hz=(b.frames-b.invalidSamples)*1000/duration;
     return {startMs,endMs,complete,observedMs:b.observedMs,closedMs:b.closedMs,frames:b.frames,invalidSamples:b.invalidSamples,gaps:b.gaps,blinks:b.blinks,prolongedClosures:b.prolongedClosures,
       blinkRatePerMinute:b.observedMs?b.blinks*60000/b.observedMs:null,medianBlinkMs:b.blinks?median(b.durations):null,closedFraction:b.observedMs?b.closedMs/b.observedMs:null,
-      coverage,samplingHz:hz,usable:b.observedMs>=45000&&coverage>=.75&&hz>=10};
+      coverage,samplingHz:hz,usable:b.observedMs>=45000&&coverage>=.75&&hz>=25};
   }
   snapshot(atMs) {
     const end=Math.max(this.startMs,atMs),windows=[...this.finished,...[...this.bins.values()].map(b=>this.window(b,Math.min(end,this.startMs+(b.index+1)*60000),end>=this.startMs+(b.index+1)*60000))];

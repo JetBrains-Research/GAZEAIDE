@@ -40,6 +40,7 @@ public final class GazeEngine {
     private ViewedRegion lineRegion, readyRegion;
     private String readyPrompt;
     private long pendingSince;
+    private long gapSince;
     private long cachedStamp = -1;
 
     public GazeEngine(Editor editor, Project project) {
@@ -56,11 +57,17 @@ public final class GazeEngine {
         editor.getDocument().addDocumentListener(documentListener);
     }
 
-    public void onGaze(int line, int col) {
+    public void onGaze(int line,int col){onGaze(line,col,GazeClock.now());}
+    void onGaze(int line, int col,long capturedAtMs) {
         if (editor.isDisposed() || project.isDisposed() || options().paused) return;
         Document doc = editor.getDocument();
         if (line < 0 || line >= doc.getLineCount()) { onExit(); return; }
-        long now = System.currentTimeMillis();
+        long now = capturedAtMs;
+        if(now<lineEntered)return;
+        if(gapSince>0) {
+            if(now-gapSince>500 || candidate==null || !same(candidate,resolve(line))) onExit();
+            else {candidateSince+=Math.max(0,now-gapSince);if(active!=null)regionEntered=now;gapSince=0;}
+        }
         if (pendingSince > 0) {
             candidateSince += Math.max(0, now - pendingSince);
             if (active != null) { regionEntered = now; presentation.show(active, null); }
@@ -74,6 +81,7 @@ public final class GazeEngine {
             coverage.onLeave(lastLine);
             clearDwell(); clearMarker();
             lastLine = line; lastColumn = col; lineEntered = now; triggered = false;
+            candidateToken=stableToken=null;tokenSince=now;
             lineText = doc.getText(new TextRange(doc.getLineStartOffset(line), doc.getLineEndOffset(line)));
             visitSource = GazeInputSettings.getInstance().getInputMode();
             simulated = visitSource == GazeInputMode.WEBCAM && GazeInputSettings.getInstance().isMock();
@@ -88,7 +96,7 @@ public final class GazeEngine {
         VirtualFile targetFile = FileDocumentManager.getInstance().getFile(doc);
         GazeModeService.getInstance(project).updateTarget(coverage,
                 (targetFile == null ? "Unsaved document" : targetFile.getName()) + ":" + (line + 1));
-        String token = CodeRegion.identifier(lineText, col);
+        String token = CodeRegion.identifier(lineText, col,filePath());
         if (!Objects.equals(candidateToken, token)) { candidateToken = token; tokenSince = now; }
         if (!stableTimer.isRunning()) stableTimer.start();
     }
@@ -97,7 +105,7 @@ public final class GazeEngine {
      * block pause region residence instead of restarting it; they never add dwell time. */
     void onPendingGaze(int line) {
         if (editor.isDisposed() || project.isDisposed() || line < 0 || line >= editor.getDocument().getLineCount()) { onExit(); return; }
-        long now = System.currentTimeMillis();
+        long now = GazeClock.now();
         if (candidate == null || !same(candidate, resolve(line)) || pendingSince > 0 && now - pendingSince > 500) { onExit(); return; }
         if (pendingSince > 0) return;
         pendingSince = now; contextDwell.pause(now);
@@ -113,7 +121,7 @@ public final class GazeEngine {
     private void stabilize() {
         if (lastLine < 0 || editor.isDisposed() || project.isDisposed()) { stableTimer.stop(); return; }
         if (!isForeground() || options().paused) { onExit(); return; }
-        long now = System.currentTimeMillis();
+        long now = GazeClock.now();
         boolean changed = false;
         if (candidate != null && !same(candidate, active) && now - candidateSince >= options().stableMs) {
             leaveRegion(now);
@@ -186,15 +194,25 @@ public final class GazeEngine {
         });
     }
 
+    /** Preserve region residence for at most 500 ms of unavailable tracking. No gap dwell is added. */
+    void trackingGap() {
+        if(gapSince>0) return;
+        long now=GazeClock.now();gapSince=now;contextDwell.pause(now);
+        flushLine(now);leaveRegion(now);
+        if(coverage!=null)coverage.onLeave(lastLine);
+        lastLine=-1;lineEntered=0;candidateToken=stableToken=null;
+        stableTimer.stop();clearDwell();clearMarker();presentation.clear();
+    }
+
     public void onExit() {
-        long now = System.currentTimeMillis();
+        long now = GazeClock.now();
         flushLine(now); leaveRegion(now);
         if (coverage != null) coverage.onLeave(lastLine);
         if (!project.isDisposed()) GazeModeService.getInstance(project).updateTarget(coverage, "No active code target");
         if (!project.isDisposed()) GazeModeService.getInstance(project).updateViewedRegion(coverage, null);
         contextDwell.reset();
         if (!project.isDisposed()) GazeContextService.getInstance(project).leave();
-        lastLine = -1; lineEntered = 0; candidate = active = null; pendingSince = 0;
+        lastLine = -1; lineEntered = 0; candidate = active = null; pendingSince = gapSince = 0;
         candidateToken = stableToken = null; lineRegion = null;
         stableTimer.stop(); clearDwell(); clearMarker(); presentation.clear();
         setMode(GazeMode.READING);
@@ -209,9 +227,16 @@ public final class GazeEngine {
         }
     }
 
+    /** Persist the open visit without changing dwell or splitting its live interval. */
+    void checkpointVisit() {
+        if(lastLine<0||lineEntered==0||project.isDisposed())return;
+        long now=GazeClock.now();var rec=GazeRecordingService.getInstance(project);
+        long duration=Math.max(0,now-Math.max(lineEntered,rec.getStartMs()));
+        if(rec.isRecording()&&duration>0)rec.checkpointActive(new GazeEvent(now,now-rec.getStartMs(),filePath(),lastLine+1,lastColumn,duration,lineText.strip(),stableToken,triggered,visitSource,simulated,lineRegion));
+    }
     /** Split visits at start/stop so intervals cannot leak across recording boundaries. */
     void recordingBoundary() {
-        long now = System.currentTimeMillis(); flushLine(now);
+        long now = GazeClock.now(); flushLine(now);
         contextDwell.reset();
         if (lastLine >= 0) { lineEntered = now; triggered = false; contextDwell.observe(lineRegion, now); }
     }
@@ -240,11 +265,11 @@ public final class GazeEngine {
         if (cachedStamp != doc.getModificationStamp()) { regionCache.clear(); cachedStamp = doc.getModificationStamp(); }
         CodeRegion cachedRegion = regionCache.get(line);
         if (cachedRegion != null) return cachedRegion;
-        if (doc.getTextLength() <= 200000) cachedRegion = CodeRegion.find(doc.getText(), line);
+        if (doc.getTextLength() <= 200000) cachedRegion = CodeRegion.find(doc.getText(), line,filePath());
         else {
             int from = Math.max(0, line - 40), to = Math.min(doc.getLineCount() - 1, line + 40);
             String text = doc.getText(new TextRange(doc.getLineStartOffset(from), doc.getLineEndOffset(to)));
-            CodeRegion local = CodeRegion.find(text, line - from);
+            CodeRegion local = CodeRegion.find(text, line - from,filePath());
             cachedRegion = new CodeRegion(local.firstLine() + from, local.lastLine() + from, local.label(), local.text());
         }
         regionCache.put(line, cachedRegion);

@@ -22,13 +22,13 @@ The reference is local to the current edition's recording library (project-scope
 
 ## If the display says insufficient or stale
 
-A window is usable after at least **45 seconds of observed time**, at least **75% observation coverage**, and at least **10 valid eye observations/second** across its elapsed duration. Complete reference windows are 60 seconds long. At least **three** usable complete windows and **ten** counted blinks are needed for a reference. They can come from several saved rested recordings. These are engineering quality gates, not empirically validated accuracy thresholds.
+A window is usable after at least **45 seconds of observed time**, at least **75% observation coverage**, and at least **25 valid eye observations/second** across its elapsed duration. Complete reference windows are 60 seconds long. At least **three** usable complete windows and **ten** counted blinks are needed for a reference. They can come from several saved rested recordings. These are engineering quality gates, not empirically validated accuracy thresholds.
 
 No score appears before the reference is ready. Low-quality, interrupted or short windows are kept with flags rather than turned into valid zeros. A measured rate of zero is different from no valid observed time. Keep collecting, check face visibility/lighting, and inspect sampling speed. Slow hardware may not meet the gates. Do not force a score by treating missing observations as blinks. A prior complete minute may remain displayed while the next minute fills; the state becomes stale on an observation interruption, after a one-second observation timeout, or when that window is more than one minute old.
 
 ## What is saved
 
-The additive `blink` object in recording schema 3 has its own schema version 1 and detector policy `webcam-blink-v1`:
+The additive `blink` object in recording schema 4 has its own schema version 1 and detector policy `webcam-blink-v2`:
 
 - `config`: participant/group, explicitly rested flag, optional start self-ratings and suggestion preference.
 - `events`: epoch timestamps, `BLINK`, `SHORT_CLOSURE`, `PROLONGED_CLOSURE` or `INTERRUPTED`, estimated duration, sample bounds, maximum sampling gap or interruption reason.
@@ -64,3 +64,13 @@ Before research claims, validate event precision/recall and duration error again
 - Nyström et al. (2024), [What is a blink? Classifying and characterizing blinks in eye openness signals](https://link.springer.com/article/10.3758/s13428-023-02333-9). Definitions, signal quality and measurement method affect detected blinks and durations. Their eye-tracker results do not validate this webcam detector.
 - Gorin et al. (2024), [A Review of the Use of Gaze and Pupil Metrics to Assess Mental Workload in Gamified and Simulated Sensorimotor Tasks](https://pmc.ncbi.nlm.nih.gov/articles/PMC10975796/), DOI: 10.3390/s24061759. Task-dependent evidence motivates keeping workload separate from fatigue.
 - Stern, Boyer & Schroeder (1994), [Blink Rate: A Possible Measure of Fatigue](https://journals.sagepub.com/doi/10.1177/001872089403600209). An association does not establish a universal blink-rate threshold or a unique mental-state inference.
+
+## Sampling policy v2
+
+Current recordings use `webcam-blink-v2`. A usable window requires at least 25
+valid observations per second on average, in addition to the coverage and observed-time
+gates. Below this cadence, short closures can disappear between samples even when
+coverage is high. This quality gate does not establish accuracy at or above 25 Hz.
+Earlier `webcam-blink-v1` recordings remain readable but are not used as v2 references.
+Both editions preserve monotonic capture timing; brief unavailable-tracking gaps pause
+region dwell for up to 500 ms without counting the gap as observed exposure.

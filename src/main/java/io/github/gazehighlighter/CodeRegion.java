@@ -10,10 +10,11 @@ public record CodeRegion(int firstLine, int lastLine, String label, String text)
     private static final Pattern PYTHON = Pattern.compile(
             "(?:async\\s+)?(?:def|class|if|elif|else|for|while|with|try|except|finally|match|case)\\b.*:");
 
-    public static CodeRegion find(String text, int targetLine) {
+    public static CodeRegion find(String text,int targetLine){return find(text,targetLine,"");}
+    public static CodeRegion find(String text, int targetLine,String language) {
         String[] lines = text.split("\\n", -1);
         int target = Math.max(0, Math.min(targetLine, lines.length - 1));
-        String masked = mask(text);
+        String masked = mask(text,language);
         ArrayDeque<Integer> stack = new ArrayDeque<>();
         int line = 0, bestStart = -1, bestEnd = lines.length;
         for (int i = 0; i < masked.length(); i++) {
@@ -22,7 +23,7 @@ public record CodeRegion(int firstLine, int lastLine, String label, String text)
             else if (c == '{') stack.push(line);
             else if (c == '}' && !stack.isEmpty()) {
                 int start = stack.pop();
-                if (start <= target && target <= line && line > start
+                if (start <= target && target <= line
                         && line - start < bestEnd - bestStart) {
                     bestStart = start; bestEnd = line;
                 }
@@ -63,7 +64,10 @@ public record CodeRegion(int firstLine, int lastLine, String label, String text)
     }
 
     /** Removes strings and comments while preserving offsets and line breaks. */
-    static String mask(String text) {
+    static String mask(String text) {return mask(text,"");}
+    static String mask(String text,String language) {
+        boolean hashComments=language.matches("(?i).*(\\.(py|rb|sh|bash|zsh|yaml|yml|toml))$") || language.isEmpty()&&java.util.regex.Pattern.compile("(?m)^\\s*(def |from |import |class \\w+.*:)").matcher(text).find();
+        boolean rust=language.endsWith(".rs");
         StringBuilder out = new StringBuilder(text);
         boolean block = false, comment = false, escaped = false, triple = false;
         char quote = 0;
@@ -89,8 +93,10 @@ public record CodeRegion(int firstLine, int lastLine, String label, String text)
                 continue;
             }
             if (c == '/' && next == '*') { block = true; out.setCharAt(i, ' '); out.setCharAt(++i, ' '); }
-            else if ((c == '/' && next == '/') || c == '#') { comment = true; out.setCharAt(i, ' '); }
+            else if ((c == '/' && next == '/') || c == '#' && hashComments) { comment = true; out.setCharAt(i, ' '); }
             else if (c == '\'' || c == '"' || c == '`') {
+                if(c=='\'' && rust && (Character.isLetter(next)||next=='_') && !(i+2<text.length()&&text.charAt(i+2)=='\''))continue;
+                if(c!='`'&&text.indexOf(c,i+1)<0)continue;
                 quote = c; out.setCharAt(i, ' ');
                 if (i + 2 < text.length() && next == c && text.charAt(i + 2) == c) {
                     triple = true; out.setCharAt(++i, ' '); out.setCharAt(++i, ' ');
@@ -100,8 +106,9 @@ public record CodeRegion(int firstLine, int lastLine, String label, String text)
         return out.toString();
     }
 
-    public static String identifier(String line, int column) {
-        String clean = mask(line);
+    public static String identifier(String line,int column){return identifier(line,column,"");}
+    public static String identifier(String line, int column,String language) {
+        String clean = mask(line,language);
         if (column < 0 || column >= clean.length() || !part(clean.charAt(column))) return null;
         int s = column, e = column + 1;
         while (s > 0 && part(clean.charAt(s - 1))) s--;

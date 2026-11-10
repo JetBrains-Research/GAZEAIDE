@@ -175,7 +175,7 @@ filter, annotate/prune and export HTML. Trace edits persist only through that ex
 ## Data and storage
 
 Recordings contain line visits, labels, source snapshots, input provenance and configuration
-changes, including pauses/fallback. CSV, JSON schema 3 and self-contained HTML exports are
+changes, including pauses/fallback. CSV, JSON schema 4 and self-contained HTML exports are
 available. Visits are not raw fixation samples. Session duration includes pauses; visit exposure
 does not. Legacy `explained` counts dwell triggers; in 0.7 it means local context preparation,
 not an AI request. Earlier versions counted direct-request triggers. None means an answer was read.
@@ -197,7 +197,7 @@ upload after future recordings stop. Failures stay in a reduced-data queue for e
 Remote schema 1 excludes code, file paths, project names, local free-text labels, notes, AI
 content, raw gaze/video and absolute event times. It retains study/participant/task codes,
 relative viewing events, within-session file/region IDs and configuration/quality summaries.
-Local JSON schema 3 and local source snapshots are unchanged. The connection needs a deployed
+Remote upload does not alter local source snapshots. The connection needs a deployed
 receiver; a Drive folder URL alone does not work. A receiver template and setup instructions
 are available under **Data & setup** in the dialog and in [remote-upload documentation](../docs/remote-upload.md).
 
@@ -223,8 +223,8 @@ See [manual test steps and validation](../docs/local-testing.md), [gaze input](.
 and [release notes](../CHANGELOG.md).
 
 Webcam inference uses [UnitEye](https://github.com/wgnrto/uniteye), MediaPipe and EyeMU in a
-windowless embedded browser. No separate webcam browser window is created. Pinned runtime
-URLs may require internet; caching is not an offline guarantee. See
+windowless embedded browser. No separate webcam browser window is created. Runtime and model
+assets are bundled and checksum-verified; camera startup can run offline. See
 [third-party notices](../src/main/resources/gaze/THIRD-PARTY-NOTICES.md). Live accuracy, native AI
 handoff and usability require manual IDE checks. No empirical benefit is claimed.
 

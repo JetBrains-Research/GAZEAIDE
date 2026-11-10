@@ -72,6 +72,14 @@ public final class GazeDispatcher {
         else ApplicationManager.getApplication().invokeLater(suspend);
     }
 
+    static void trackingGapAllProjects() {
+        Runnable action=()->{for(Project p:ProjectManager.getInstance().getOpenProjects())if(!p.isDisposed()) {
+            var d=getInstance(p);d.engines.values().forEach(GazeEngine::trackingGap);d.lineTarget.reset();
+        }};
+        if(ApplicationManager.getApplication().isDispatchThread())action.run();else ApplicationManager.getApplication().invokeLater(action);
+    }
+    void checkpointVisits() {for(var e:engines.values())e.checkpointVisit();}
+
     public static void refreshCursors() {
         for (Project project : ProjectManager.getInstance().getOpenProjects()) {
             if (!project.isDisposed()) for (GazeEngine engine : getInstance(project).engines.values()) engine.refreshCursor();
@@ -87,7 +95,8 @@ public final class GazeDispatcher {
      * @return {@code true} if an editor consumed the point, so the caller can stop looking
      *         in other projects.
      */
-    public boolean routeScreenPoint(int screenX, int screenY) {
+    public boolean routeScreenPoint(int screenX,int screenY){return routeScreenPoint(screenX,screenY,GazeClock.now());}
+    boolean routeScreenPoint(int screenX, int screenY,long capturedAtMs) {
         Editor hit = null;
         Point local = null;
 
@@ -96,6 +105,9 @@ public final class GazeDispatcher {
             if (comp == null || !comp.isShowing()) continue;
             Window owner = SwingUtilities.getWindowAncestor(comp);
             if (owner == null || !owner.isActive()) continue;
+            var calibrated=GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+            var config=owner.getGraphicsConfiguration();
+            if(config==null || !config.getDevice().equals(calibrated)) continue;
             Point origin;
             try {
                 origin = comp.getLocationOnScreen();
@@ -157,8 +169,8 @@ public final class GazeDispatcher {
             int selected = lineTarget.update(pos.line, local.y, row.y + height / 2.0, height,
                     System.nanoTime() / 1_000_000, settings.getResponse().lineHoldMs);
             if (selected < 0) engine.onPendingGaze(pos.line);
-            else engine.onGaze(selected, selected == pos.line ? pos.column : 0);
-        } else engine.onGaze(pos.line, pos.column);
+            else engine.onGaze(selected, selected == pos.line ? pos.column : 0,capturedAtMs);
+        } else engine.onGaze(pos.line, pos.column,capturedAtMs);
         return true;
     }
 }

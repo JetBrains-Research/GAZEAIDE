@@ -7,7 +7,7 @@ node --test test/*.test.mjs
 node build-release.mjs
 ```
 
-The first command runs 50 standalone tests. Loopback sockets and local fixture subprocesses must be permitted. Tests use synthetic replies; no Codex account, webcam or model request is needed.
+The first command runs 68 standalone tests. Loopback sockets and local fixture subprocesses must be permitted. Tests use synthetic replies; no Codex account, webcam or model request is needed.
 
 The second command creates `artifacts/gazeaide-standalone-1.1.0.zip`, a staging folder and a SHA-256 file. `MANIFEST.json` lists included files and their SHA-256 hashes. The archive excludes `.local/` and runtime records. Re-extract it into a fresh folder and run the test command there to check portable operation.
 

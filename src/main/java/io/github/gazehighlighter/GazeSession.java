@@ -4,6 +4,8 @@ import java.util.List;
 
 /** An immutable snapshot of a finished (or in-progress) recording, ready to export. */
 public final class GazeSession {
+    public final int schemaVersion=4;
+    public final boolean inProgress;
     public final String projectName;
     public final String researchRecordingId;
     public final long   startMs;
@@ -25,6 +27,10 @@ public final class GazeSession {
     }
     public GazeSession(String projectName, long startMs, long endMs, List<GazeEvent> events,
                        GazeSessionMetadata metadata, List<ConfigurationChange> changes, GazeBlinkMonitor.Data blink) {
+        this(projectName,startMs,endMs,events,metadata,changes,blink,false);
+    }
+    GazeSession(String projectName,long startMs,long endMs,List<GazeEvent> events,GazeSessionMetadata metadata,List<ConfigurationChange> changes,GazeBlinkMonitor.Data blink,boolean inProgress) {
+        this.inProgress=inProgress;
         this.projectName = projectName;
         this.researchRecordingId = "intellij-" + startMs;
         this.startMs     = startMs;

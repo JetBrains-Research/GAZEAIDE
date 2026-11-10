@@ -1,3 +1,6 @@
+import { VERSION } from "./lib/version.mjs";
+import { verifyAssets } from "./lib/assets.mjs";
+import { Recordings } from "./lib/recordings.mjs";
 import http from "node:http";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -17,10 +20,12 @@ export async function start({
   port = 8768,
   codexCommand = process.env.GAZEAIDE_CODEX_BIN || "codex",
 } = {}) {
+  await verifyAssets();
   project = await fs.realpath(project);
   data = path.resolve(data);
   await fs.mkdir(data, { recursive: true, mode: 0o700 });
   data = await fs.realpath(data);
+  await fs.chmod(data, 0o700);
   const releaseLibrary = await acquireLibrary(data);
   let server, codex;
   try {
@@ -66,6 +71,7 @@ export async function start({
           .catch(() => {});
       },
     });
+    const recordings = new Recordings(path.join(data, "recordings"));
     let ready = false;
     server = http.createServer(async (req, res) => {
       if (!ready) {
@@ -120,7 +126,7 @@ export async function start({
               return json({
                 project: path.basename(project),
                 projectRoot: project,
-                version: "1.1.0",
+                version: VERSION,
                 standaloneRoot: HERE,
                 dataRoot: data,
                 preferences: pref,
@@ -163,7 +169,14 @@ export async function start({
                 .filter((n) => n.endsWith(".json"))
                 .sort()
                 .reverse();
-              const out = [];
+              const out = (await recordings.list()).map((s) => ({
+                id: s.id,
+                startMs: s.startMs,
+                metadata: s.metadata,
+                eventCount: s.events.length,
+                project: s.project,
+                recovered: s.recovered,
+              }));
               for (const name of names) {
                 try {
                   const s = JSON.parse(
@@ -186,6 +199,11 @@ export async function start({
             if (route === "/api/session") {
               const id = url.searchParams.get("id");
               if (!validId(id)) return fail(400, "Invalid session ID");
+              try {
+                return json(await recordings.load(id));
+              } catch (e) {
+                if (e.code !== "ENOENT") throw e;
+              }
               return json(
                 JSON.parse(
                   await fs.readFile(
@@ -197,11 +215,38 @@ export async function start({
             }
           } else {
             if (route === "/api/blink-reference") {
-              const records=[];
-              for(const name of (await fs.readdir(path.join(data,"sessions"))).filter(n=>n.endsWith(".json"))) {
-                try { const s=JSON.parse(await fs.readFile(path.join(data,"sessions",name),"utf8")); if(s.blink) { const b=s.blink; records.push({id:s.id,startMs:s.startMs,endMs:s.endMs,inProgress:s.inProgress,blink:{policy:b.policy,inputKind:b.inputKind,config:b.config,windows:b.windows,truncated:b.truncated}}); } } catch {}
+              const records = (await recordings.list()).filter((s) => s.blink);
+              for (const name of (
+                await fs.readdir(path.join(data, "sessions"))
+              ).filter((n) => n.endsWith(".json"))) {
+                try {
+                  const s = JSON.parse(
+                    await fs.readFile(
+                      path.join(data, "sessions", name),
+                      "utf8",
+                    ),
+                  );
+                  if (s.blink) {
+                    const b = s.blink;
+                    records.push({
+                      id: s.id,
+                      startMs: s.startMs,
+                      endMs: s.endMs,
+                      inProgress: s.inProgress,
+                      blink: {
+                        policy: b.policy,
+                        inputKind: b.inputKind,
+                        config: b.config,
+                        windows: b.windows,
+                        truncated: b.truncated,
+                      },
+                    });
+                  }
+                } catch {}
               }
-              return json(blinkReference(records,blinkConfig(body),Date.now()));
+              return json(
+                blinkReference(records, blinkConfig(body), Date.now()),
+              );
             }
             if (route === "/api/preferences") {
               pref = body;
@@ -212,15 +257,30 @@ export async function start({
               shared = { ...body, updatedAtMs: Date.now() };
               return json({ ok: true });
             }
+            if (route === "/api/recording/start")
+              return json(await recordings.begin(body));
+            if (route === "/api/recording/append")
+              return json(await recordings.append(body));
+            if (route === "/api/recording/state") {
+              if (body.blink != null && !validBlinkData(body.blink))
+                return fail(400, "Invalid blink data");
+              return json(await recordings.checkpoint(body));
+            }
             if (route === "/api/session") {
               if (
                 !validId(body.id) ||
-                body.schemaVersion !== 3 ||
+                ![3, 4].includes(body.schemaVersion) ||
                 !Array.isArray(body.events) ||
                 body.events.length > 100000 ||
                 (body.blink != null && !validBlinkData(body.blink))
               )
                 return fail(400, "Invalid session");
+              try {
+                await fs.access(recordings.file(body.id));
+                return json(await recordings.checkpoint(body));
+              } catch (e) {
+                if (e.code !== "ENOENT") throw e;
+              }
               await atomic(
                 path.join(data, "sessions", body.id + ".json"),
                 body,
@@ -322,12 +382,13 @@ export async function start({
             ".js": "text/javascript",
             ".css": "text/css",
             ".onnx": "application/octet-stream",
+            ".wasm": "application/wasm",
             ".java": "text/plain",
           };
-        // HTML has no remote scripts; only the explicitly enabled webcam runtime loads pinned CDNs.
+        // All executable and model assets are served locally.
         res.setHeader(
           "Content-Security-Policy",
-          "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com; worker-src 'self' blob:; img-src 'self' data:; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+          "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; worker-src 'self' blob:; img-src 'self' data:; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
         );
         res.setHeader(
           "Permissions-Policy",
@@ -337,11 +398,7 @@ export async function start({
         res.writeHead(200, {
           "Content-Type": types[ext] || "application/octet-stream",
         });
-        res.end(
-          route === "/"
-            ? content.toString().replace("__GAZEAIDE_TOKEN__", token)
-            : content,
-        );
+        res.end(content);
       } catch (e) {
         fail(
           e.code === "ENOENT" ? 404 : 400,
@@ -363,6 +420,7 @@ export async function start({
       token,
       project,
     };
+    const browserUrl = connection.url + "/#key=" + token;
     await atomic(path.join(data, "connection.json"), connection);
     ready = true;
     let closing;
@@ -370,6 +428,7 @@ export async function start({
       server,
       codex,
       connection,
+      browserUrl,
       data,
       close() {
         return (closing ||= (async () => {
@@ -417,7 +476,7 @@ if (
       port: Number(get("--port", "8768")),
     });
     console.log(
-      `GAZEAIDE Standalone: ${app.connection.url}\nProject: ${app.connection.project}\nLocal recordings: ${app.data}\nOpen the URL to begin. Camera and Codex connect only when requested.`,
+      `GAZEAIDE Standalone: ${app.browserUrl}\nProject: ${app.connection.project}\nLocal recordings: ${app.data}\nOpen the URL to begin. Camera and Codex connect only when requested.`,
     );
     for (const signal of ["SIGINT", "SIGTERM"])
       process.on(signal, () => app.close().then(() => process.exit()));

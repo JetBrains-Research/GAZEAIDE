@@ -1,3 +1,4 @@
+import {VERSION} from "./lib/version.mjs";
 import { createInterface } from "node:readline";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -49,7 +50,7 @@ async function handle(m) {
     return {
       protocolVersion: "2024-11-05",
       capabilities: { tools: {} },
-      serverInfo: { name: "gazeaide", version: "1.1.0" },
+      serverInfo: { name: "gazeaide", version: VERSION },
     };
   if (m.method === "ping") return {};
   if (m.method === "tools/list") return { tools };

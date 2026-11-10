@@ -12,10 +12,10 @@ try {
     port: Number(flag("--port") || 8768),
   });
   console.log(
-    `GAZEAIDE Standalone: ${app.connection.url}\nProject: ${app.connection.project}\nKeep this terminal open. Ctrl+C stops the companion.`,
+    `GAZEAIDE Standalone: ${app.browserUrl}\nProject: ${app.connection.project}\nKeep this terminal open. Ctrl+C stops the companion.`,
   );
   if (process.platform === "darwin") {
-    const browser = spawn("/usr/bin/open", [app.connection.url], {
+    const browser = spawn("/usr/bin/open", [app.browserUrl], {
       stdio: "ignore",
     });
     browser.on("error", () =>

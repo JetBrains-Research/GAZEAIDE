@@ -126,7 +126,7 @@ is paused; Stop camera releases it. No raw calibration samples or video are reta
 
 ## Recording and exports
 
-The opt-in recording buffers line visits, not raw fixation samples. A visit is flushed on
+The opt-in recording journals line visits, not raw fixation samples. A visit is flushed on
 line exit, tracking loss, editor exit, recording boundaries, or a source edit. It records:
 
 - End timestamp, elapsed time, duration, file path, 1-based line and 0-based column.
@@ -136,7 +136,7 @@ line exit, tracking loss, editor exit, recording boundaries, or a source edit. I
 - `source`, `simulated`, and explicit `inputKind`: `WEBCAM`, `MOUSE_PROXY`, or `MOUSE_SIMULATION`.
 - A captured region with bounds, label, source text, input source, and document version.
 
-Versions are IDE document modification stamps, not persistent Git identifiers. JSON schema 3
+Versions are IDE document modification stamps, not persistent Git identifiers. JSON schema 4
 preserves snapshots and additive `tracking` configuration (cursor visibility, fixed response,
 timing, pipeline version, affine coefficients/display bounds and calibration-check metrics);
 older recordings leave the new field unknown. The configuration timeline logs live visibility changes.

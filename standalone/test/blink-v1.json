@@ -10,7 +10,7 @@
       "suggestions": false
     },
     "reference": {
-      "policy": "webcam-blink-v1",
+      "policy": "webcam-blink-v2",
       "participant": "fixture-participant",
       "group": "fixture-camera",
       "windows": 0,
@@ -71,7 +71,7 @@
   "atMs": 61000,
   "expected": {
     "schemaVersion": 1,
-    "policy": "webcam-blink-v1",
+    "policy": "webcam-blink-v2",
     "inputKind": "WEBCAM",
     "config": {
       "participant": "fixture-participant",
@@ -163,7 +163,7 @@
       "usable": true
     },
     "reference": {
-      "policy": "webcam-blink-v1",
+      "policy": "webcam-blink-v2",
       "participant": "fixture-participant",
       "group": "fixture-camera",
       "windows": 0,

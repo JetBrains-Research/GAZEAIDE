@@ -19,11 +19,11 @@
  * Pin the version deliberately — @latest can break without notice.
  */
 
-const ORT_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.mjs';
-const ORT_WASM = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
-const MP_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.0/vision_bundle.mjs';
-const MP_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.0/wasm';
-const MP_MODEL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+const ORT_URL = './runtime/ort/ort.mjs';
+const ORT_WASM = './runtime/ort/';
+const MP_URL = './runtime/mediapipe/vision_bundle.mjs';
+const MP_WASM = './runtime/mediapipe/wasm';
+const MP_MODEL = './runtime/mediapipe/face_landmarker.task';
 
 // MediaPipe canonical face-mesh indices (match the native UnitEye eye-corner + EAR indices)
 const IDX = {
@@ -78,7 +78,7 @@ export class UnitEyeWeb {
     // EyeMU on onnxruntime-web
     this.onStatus('RUNTIME');
     const ort = await import(ORT_URL);
-    ort.env.wasm.wasmPaths = ORT_WASM;
+    ort.env.wasm.wasmPaths = import.meta.url.startsWith("data:") ? ORT_WASM : new URL(ORT_WASM, import.meta.url).href;
     ort.env.wasm.numThreads = 1; // avoids requiring cross-origin isolation (SharedArrayBuffer)
     this.ort = ort;
     this.onStatus('EYE_MODEL');
@@ -86,9 +86,9 @@ export class UnitEyeWeb {
     // MediaPipe FaceLandmarker
     this.onStatus('FACE_MODEL');
     const vision = await import(MP_URL);
-    const fileset = await vision.FilesetResolver.forVisionTasks(MP_WASM);
+    const fileset = await vision.FilesetResolver.forVisionTasks(import.meta.url.startsWith("data:") ? MP_WASM : new URL(MP_WASM, import.meta.url).href);
     this.faceLandmarker = await vision.FaceLandmarker.createFromOptions(fileset, {
-      baseOptions: { modelAssetPath: MP_MODEL },
+      baseOptions: { modelAssetPath: import.meta.url.startsWith("data:") ? MP_MODEL : new URL(MP_MODEL, import.meta.url).href },
       runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: false, outputFacialTransformationMatrixes: false,
     });
     // camera
@@ -134,7 +134,7 @@ export class UnitEyeWeb {
         // Cancel attribution immediately on a failed inference frame. The last valid
         // coordinate must not continue to accrue viewing time until the host timeout.
         if (this._running && generation === this._runGeneration)
-          { this._eyeEpoch = (this._eyeEpoch || 0) + 1; this._latestEyeValid = false; this.onGaze(null, null, false, false); this.onEyeSample?.({atMs: Math.round(performance.timeOrigin + performance.now()), face: false, left: null, right: null}); }
+          { this._eyeEpoch = (this._eyeEpoch || 0) + 1; this._latestEyeValid = false; this.onGaze(null, null, false, false); this.onEyeSample?.({atMonoMs: performance.now(), face: false, left: null, right: null}); }
         console.warn('UnitEye frame error', e);
       }
       if (this._running && generation === this._runGeneration) this._sampleTimer = setTimeout(tick, 33);
@@ -163,7 +163,7 @@ export class UnitEyeWeb {
     if (!res || !res.faceLandmarks || res.faceLandmarks.length === 0) {
       this._latestEyeValid = false;
       this._eyeEpoch = (this._eyeEpoch || 0) + 1;
-      this.onEyeSample?.({atMs: Math.round(performance.timeOrigin + now), face: false, left: null, right: null});
+      this.onEyeSample?.({atMonoMs: now, face: false, left: null, right: null});
       this._emit(0, 0, null, false, false, now / 1000);
       return;
     }
@@ -175,7 +175,7 @@ export class UnitEyeWeb {
     this._latestBlink = blink;
     // Observe eyelids before gaze inference. Slow ONNX predictions must not set the
     // eyelid observation cadence. One inference remains in flight at most.
-    this.onEyeSample?.({atMs: Math.round(performance.timeOrigin + now), face: true, left: leftEar, right: rightEar});
+    this.onEyeSample?.({atMonoMs: now, face: true, left: leftEar, right: rightEar});
     if (blink || !this._latestEyeValid) {
       this._eyeEpoch = (this._eyeEpoch || 0) + 1;
       this.onGaze(null, null, blink, this._latestEyeValid);
@@ -280,6 +280,6 @@ export class UnitEyeWeb {
       y = this.calibY.predict(features) * this.screenH;
     }
     const f = this.filter.filter(x, y, t);
-    this.onGaze({ x: f.x, y: f.y }, { x: rawX, y: rawY }, blink, facePresent, features);
+    this.onGaze({ x: f.x, y: f.y }, { x: rawX, y: rawY }, blink, facePresent, features, t*1000);
   }
 }

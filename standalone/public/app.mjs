@@ -6,6 +6,7 @@ import {
   PointFilter,
   LineTarget,
   region,
+  regionIndex,
   key,
   location,
   occurrences,
@@ -20,14 +21,33 @@ import {
   csv,
   escape,
 } from "/lib/core.mjs";
-import { BlinkMonitor, blinkConfig, blinkStatus, blinkCsv } from "/lib/blinks.mjs";
+import {
+  BlinkMonitor,
+  blinkConfig,
+  blinkStatus,
+  blinkCsv,
+} from "/lib/blinks.mjs";
 import { reduced, reportHtml } from "/lib/research.mjs";
 import { targetQuality, runGuideTargets } from "/lib/guide.mjs";
 import { buildAgentContext, composeAgentRequest } from "/lib/agent-context.mjs";
 import { reviewItems, reviewDocument, documentRegion } from "/lib/review.mjs";
-const $ = (id) => document.getElementById(id),
-  secret = document.querySelector("meta[name=gazeaide-key]").content;
-document.querySelector("meta[name=gazeaide-key]").remove();
+import {
+  RecordingClock,
+  RecordingWriter,
+  browserKey,
+  optionalRating,
+  textColumn,
+  importedSession,
+} from "/lib/browser.mjs";
+const $ = (id) => document.getElementById(id);
+let secret;
+try {
+  secret = browserKey(window.location, window.sessionStorage, window.history);
+} catch (e) {
+  $("notice").textContent = e.message;
+  throw e;
+}
+const captureClock = new RecordingClock();
 const api = async (route, body) => {
   const r = await fetch("/api/" + route, {
     method: body === undefined ? "GET" : "POST",
@@ -41,6 +61,7 @@ const api = async (route, body) => {
   if (!r.ok) throw new Error(result.error || "Local request failed");
   return result;
 };
+const recordingWriter = new RecordingWriter(api);
 const notice = (text) => ($("notice").textContent = text);
 const action = (id, fn) =>
   $(id).addEventListener("click", () =>
@@ -87,7 +108,8 @@ let config,
   threadsCursor = null,
   availableThreads = [],
   sessionWrite = Promise.resolve(),
-  sharedWrite = Promise.resolve();
+  sharedWrite = Promise.resolve(),
+  recordingCheckpointTimer = null;
 const filter = new PointFilter(),
   lineTarget = new LineTarget();
 const engine = new Engine({
@@ -97,6 +119,13 @@ const engine = new Engine({
       end = visit.timestamp;
     if (end <= start) return;
     session.events.push(eventOf(visit, start, end));
+    if (recordingCheckpointTimer === null)
+      recordingCheckpointTimer = setTimeout(() => {
+        recordingCheckpointTimer = null;
+        persistSession().catch((e) =>
+          notice("Recording append failed: " + e.message),
+        );
+      }, 250);
   },
   onPrepared: (p) => prepare(p),
   onActive: (r) => {
@@ -147,7 +176,7 @@ function eventOf(v, start, end) {
     column: v.column,
     dwellMs: Math.round(end - start),
     explained: v.explained,
-    source: v.source === "MOUSE_PROXY" ? "MOUSE" : "WEBCAM",
+    source: v.source,
     simulated: v.source === "MOUSE_SIMULATION",
     inputKind: v.source,
     word: engine.token || "",
@@ -172,9 +201,18 @@ async function savePrefs() {
   await api("preferences", prefs);
 }
 function eyeConfig() {
-  return blinkConfig({participant:$("participant").value, group:$("blink-group").value, reference:$("blink-reference").checked, fatigue:Number($("blink-fatigue").value), effort:Number($("blink-effort").value), suggestions:$("blink-suggestions").checked});
+  return blinkConfig({
+    participant: $("participant").value,
+    group: $("blink-group").value,
+    reference: $("blink-reference").checked,
+    fatigue: optionalRating($("blink-fatigue").value),
+    effort: optionalRating($("blink-effort").value),
+    suggestions: $("blink-suggestions").checked,
+  });
 }
-function interruptBlinks(reason) { if(recording) blinkMonitor?.interrupt(Date.now(),reason); }
+function interruptBlinks(reason) {
+  if (recording) blinkMonitor?.interrupt(captureClock.at(), reason);
+}
 function configuration() {
   const o = getOptions(),
     kind = input(),
@@ -189,9 +227,9 @@ function configuration() {
     aiModel: "",
     tracking: {
       showCursor: $("cursor").checked,
-      response: real ? response() : "BYPASSED",
-      smoothingMs: real ? smooth : 0,
-      lineHoldMs: real ? hold : 0,
+      response: kind !== "MOUSE_PROXY" ? response() : "BYPASSED",
+      smoothingMs: kind !== "MOUSE_PROXY" ? smooth : 0,
+      lineHoldMs: kind !== "MOUSE_PROXY" ? hold : 0,
       pipelineVersion:
         kind === "MOUSE_PROXY"
           ? "mouse-direct-v1"
@@ -288,7 +326,7 @@ for (const b of document.querySelectorAll("[data-tab]"))
 function renderCode() {
   if (!file) return;
   const lines = file.text.split("\n"),
-    clean = mask(file.text).split("\n");
+    clean = mask(file.text, file.path).split("\n");
   $("code").innerHTML = lines
     .map((s, i) => {
       const block = file.blocks?.find(
@@ -327,9 +365,29 @@ function syntaxTail(s, clean) {
   }
   return out + escape(s.slice(at));
 }
-let effectToken = null;
+let effectToken = null,
+  effectState = "";
 function renderEffects() {
   if (!file) return;
+  const state = JSON.stringify([
+    file.version,
+    file.path,
+    paused,
+    engine.pendingAt,
+    engine.gapAt,
+    key(engine.active),
+    engine.visit?.line,
+    engine.token,
+    engine.faded.size,
+    engine.coverage.size,
+    (engine.coverage.get(`${file.path}:${engine.visit?.line}`) || 0) +
+      (engine.visit ? now() - engine.visit.at : 0) >=
+      500,
+    $("cursor").checked,
+    $("scenario").value,
+  ]);
+  if (state === effectState) return;
+  effectState = state;
   const o = getOptions(),
     active = !paused && engine.pendingAt === null ? engine.active : null,
     lines = file.text.split("\n");
@@ -397,13 +455,17 @@ function renderEffects() {
     }
   }
 }
-let regionCache = new Map();
+let regionCache = new Map(),
+  indexedFile = null,
+  indexedRegions = null;
 function regionCached(line) {
+  if (indexedFile !== file) {
+    indexedFile = file;
+    indexedRegions = regionIndex(file.text, file.path);
+    regionCache.clear();
+  }
   if (!regionCache.has(line))
-    regionCache.set(
-      line,
-      documentRegion(file, line) || region(file.text, line),
-    );
+    regionCache.set(line, documentRegion(file, line) || indexedRegions(line));
   return regionCache.get(line);
 }
 function fileList() {
@@ -570,8 +632,24 @@ function pointToCode(p, t, filtered) {
   }
   const row = $("code").children[line],
     rect = row.lastElementChild.getBoundingClientRect(),
-    charWidth = Number($("font-size").value) * 0.602,
-    column = Math.max(0, Math.floor((p.x - rect.left) / charWidth));
+    column = textColumn(
+      document,
+      row.lastElementChild,
+      p.x,
+      Math.max(rect.top + 1, Math.min(p.y, rect.bottom - 1)),
+    );
+  if (column === null) {
+    engine.pending(
+      {
+        ...regionCached(line),
+        filePath: file.path,
+        documentStamp: file.version,
+        source: input(),
+      },
+      t,
+    );
+    return;
+  }
   engine.observe(file, line, column, input(), t, getOptions());
 }
 window.addEventListener("mousemove", (e) => {
@@ -602,9 +680,15 @@ function suspend() {
   lineTarget.reset();
   renderEffects();
 }
-window.addEventListener("blur", () => { suspend(); interruptBlinks("window_unfocused"); });
+window.addEventListener("blur", () => {
+  suspend();
+  interruptBlinks("window_unfocused");
+});
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { suspend(); interruptBlinks("page_hidden"); }
+  if (document.hidden) {
+    suspend();
+    interruptBlinks("page_hidden");
+  }
 });
 $("code-scroll").addEventListener("scroll", suspend, { passive: true });
 async function connectCamera() {
@@ -625,14 +709,22 @@ async function connectCamera() {
       onStatus: (stage) => {
         $("camera-status").textContent = "Starting: " + stage;
       },
-      onEyeSample: ({atMs,left,right,face}) => {
-        if(generation !== cameraGeneration || !recording || !blinkMonitor) return;
-        if(paused || document.hidden || !document.hasFocus() || document.querySelector("dialog[open]")) interruptBlinks("paused_or_unfocused");
-        else blinkMonitor.sample(atMs,left,right,face);
+      onEyeSample: ({ atMonoMs, left, right, face }) => {
+        const atMs = captureClock.at(atMonoMs);
+        if (generation !== cameraGeneration || !recording || !blinkMonitor)
+          return;
+        if (
+          paused ||
+          document.hidden ||
+          !document.hasFocus() ||
+          document.querySelector("dialog[open]")
+        )
+          interruptBlinks("paused_or_unfocused");
+        else blinkMonitor.sample(atMs, left, right, face);
       },
-      onGaze: (_final, raw, blink, face) => {
+      onGaze: (_final, raw, blink, face, _features, atMonoMs) => {
         if (generation !== cameraGeneration) return;
-        const t = now();
+        const t = Number.isFinite(atMonoMs) ? atMonoMs : now();
         if (!face || blink || !raw || !Number.isFinite(raw.x + raw.y)) {
           rawStatus?.(
             !face
@@ -641,7 +733,10 @@ async function connectCamera() {
                 ? "Blink / eyes closed"
                 : "No valid prediction",
           );
-          suspend();
+          engine.trackingGap(t);
+          filter.reset();
+          lineTarget.reset();
+          renderEffects();
           return;
         }
         rawStatus?.("Face visible");
@@ -748,10 +843,19 @@ action("stop-camera", stopCamera);
 window.addEventListener("beforeunload", () => {
   tracker?.stop();
 });
-function snapshotSession() {
+function snapshotSession(maxVisits = Infinity) {
   if (!session) return null;
   const t = now(),
-    s = structuredClone(session);
+    s = structuredClone(
+      maxVisits === Infinity
+        ? session
+        : {
+            ...session,
+            events: session.events.slice(-maxVisits),
+            walkthrough: [],
+            aiRequests: [],
+          },
+    );
   if (recording && engine.visit) {
     const start = Math.max(engine.visit.at, clockStart);
     if (t > start) s.events.push(eventOf(engine.visit, start, t));
@@ -765,9 +869,44 @@ function snapshotSession() {
   s.walkthrough = structuredClone(steps);
   return s;
 }
-function persistSession(s = snapshotSession()) {
+function persistSession(s) {
+  if (!s && recording && session) {
+    const t = now();
+    s = {
+      ...session,
+      events: session.events.slice(),
+      configurationChanges: session.configurationChanges.slice(),
+      endMs: Math.round(epochStart + t - clockStart),
+      inProgress: true,
+    };
+    s.durationMs = s.endMs - s.startMs;
+    if (engine.visit) {
+      const start = Math.max(engine.visit.at, clockStart);
+      if (t > start) s.activeVisit = eventOf(engine.visit, start, t);
+    }
+    if (blinkMonitor) s.blink = blinkMonitor.snapshot(s.endMs);
+  }
+  s ??= snapshotSession();
   if (!s) return Promise.resolve();
-  sessionWrite = sessionWrite.catch(() => {}).then(() => api("session", s));
+  if (recording && s.id === session.id) {
+    s.activeVisit ??=
+      s.events.length > session.events.length ? s.events.at(-1) : null;
+    s.events = s.events.slice(0, session.events.length);
+  }
+  sessionWrite = sessionWrite
+    .catch(() => {})
+    .then(() =>
+      s.id === recordingWriter.id
+        ? recordingWriter.checkpoint(s)
+        : s.storage === "journal"
+          ? api(
+              "recording/state",
+              Object.fromEntries(
+                Object.entries(s).filter(([k]) => k !== "events"),
+              ),
+            )
+          : api("session", s),
+    );
   return sessionWrite;
 }
 function updateRecordingControls() {
@@ -786,7 +925,10 @@ function updateRecordingControls() {
   $("import-session").disabled = recording;
 }
 action("record", () => {
-  if($("blink-enable").checked && input() !== "WEBCAM") throw new Error("Blink collection requires a real webcam. Choose Webcam and connect it first.");
+  if ($("blink-enable").checked && input() !== "WEBCAM")
+    throw new Error(
+      "Blink collection requires a real webcam. Choose Webcam and connect it first.",
+    );
   if (
     input() === "WEBCAM" &&
     (!tracker || !compatible() || now() - lastRaw > 1000)
@@ -812,16 +954,23 @@ action("record", () => {
 });
 action("cancel-start", () => $("review-dialog").close());
 action("confirm-start", async () => {
-  const collect = $("blink-enable").checked, eye = eyeConfig();
-  if(collect && (input() !== "WEBCAM" || !tracker)) throw new Error("Connect a real webcam before collecting blinks.");
+  const collect = $("blink-enable").checked,
+    eye = eyeConfig();
+  if (collect && (input() !== "WEBCAM" || !tracker))
+    throw new Error("Connect a real webcam before collecting blinks.");
   $("confirm-start").disabled = true;
   let reference;
-  try { if(collect) reference = await api("blink-reference", eye); }
-  finally { $("confirm-start").disabled = false; }
+  try {
+    if (collect) reference = await api("blink-reference", eye);
+  } finally {
+    $("confirm-start").disabled = false;
+  }
   $("review-dialog").close();
   clockStart = now();
-  epochStart = Date.now();
-  blinkMonitor = collect ? new BlinkMonitor({startMs:epochStart,config:eye,reference}) : null;
+  epochStart = captureClock.at(clockStart);
+  blinkMonitor = collect
+    ? new BlinkMonitor({ startMs: epochStart, config: eye, reference })
+    : null;
   engine.reset(clockStart);
   recording = true;
   paused = false;
@@ -834,10 +983,11 @@ action("confirm-start", async () => {
   offered.clear();
   session = {
     id: `${epochStart}-${crypto.randomUUID().slice(0, 8)}`,
-    schemaVersion: 3,
+    schemaVersion: 4,
+    storage: "journal",
     edition: "standalone",
-    editionVersion: "1.1.0",
-    pluginCompatibilityVersion: "1.1.0",
+    editionVersion: config.version,
+    pluginCompatibilityVersion: config.version,
     project: config.project,
     startMs: epochStart,
     endMs: epochStart,
@@ -855,6 +1005,14 @@ action("confirm-start", async () => {
     aiRequests: [],
     walkthrough: [],
   };
+  try {
+    await recordingWriter.begin(session);
+  } catch (e) {
+    recording = false;
+    paused = true;
+    updateRecordingControls();
+    throw e;
+  }
   changeLog();
   updateRecordingControls();
   if ($("scenario").value === "WALKTHROUGH") buildTour();
@@ -878,17 +1036,26 @@ action("pause", () => {
 });
 action("stop", async () => {
   suspend();
+  if (recordingCheckpointTimer !== null) {
+    clearTimeout(recordingCheckpointTimer);
+    recordingCheckpointTimer = null;
+  }
   const t = now();
   session.endMs = Math.round(epochStart + t - clockStart);
   session.durationMs = session.endMs - session.startMs;
   session.inProgress = false;
-  if(blinkMonitor) { blinkMonitor.interrupt(session.endMs,"recording_stopped"); session.blink = blinkMonitor.snapshot(session.endMs); }
+  if (blinkMonitor) {
+    blinkMonitor.interrupt(session.endMs, "recording_stopped");
+    session.blink = blinkMonitor.snapshot(session.endMs);
+  }
   recording = false;
   paused = true;
   session.walkthrough = structuredClone(steps);
   await persistSession(session);
   selected = session;
-  $("blink-reference").checked=false;$("blink-fatigue").value=-1;$("blink-effort").value=-1;
+  $("blink-reference").checked = false;
+  $("blink-fatigue").value = -1;
+  $("blink-effort").value = -1;
   updateRecordingControls();
   await library();
   showResults();
@@ -913,7 +1080,7 @@ function prepare(p) {
     region: p.region,
     purpose,
     history: p.history,
-    capturedAtMs: Date.now(),
+    capturedAtMs: captureClock.at(),
     origin: "locally prepared",
   };
   $("context-status").textContent =
@@ -1048,13 +1215,13 @@ function agentContext() {
   }
   const recent =
     captured &&
-    Date.now() - captured.capturedAtMs < 600000 &&
+    captureClock.at() - captured.capturedAtMs < 600000 &&
     captured.region.filePath === file?.path &&
     captured.region.documentStamp === file.version
       ? captured.region
       : null;
   return buildAgentContext({
-    session: snapshotSession(),
+    session: snapshotSession(5000),
     target: engine.active || recent,
     viewport,
     configuration: configuration(),
@@ -1699,7 +1866,7 @@ async function library() {
     ...list.map(
       (s) =>
         new Option(
-          `${new Date(s.startMs).toLocaleString()} · ${s.metadata?.labels?.participant || "unlabelled"} · ${s.eventCount} visits`,
+          `${new Date(s.startMs).toLocaleString()} · ${s.metadata?.labels?.participant || "unlabelled"} · ${s.eventCount} visits${s.recovered ? " · recovered checkpoint" : ""}`,
           s.id,
         ),
     ),
@@ -1837,31 +2004,10 @@ $("session-picker").onchange = async (e) => {
     const f = e.target.files[0];
     if (!f || f.size > 32 * 1024 * 1024)
       throw new Error("Choose a JSON recording below 32 MiB.");
-    const s = JSON.parse(await f.text());
-    if (
-      !Array.isArray(s.events) ||
-      !Number.isFinite(s.startMs) ||
-      s.events.length > 100000
-    )
-      throw new Error("Invalid recording.");
-    for (const e of s.events) {
-      if (
-        !Number.isFinite(e.line) ||
-        !Number.isFinite(e.dwellMs) ||
-        e.dwellMs < 0
-      )
-        throw new Error("Invalid line visit.");
-      e.inputKind ??= e.simulated
-        ? "MOUSE_SIMULATION"
-        : e.source === "WEBCAM"
-          ? "WEBCAM"
-          : "MOUSE_PROXY";
-    }
-    s.id ||= `import-${crypto.randomUUID()}`;
-    s.schemaVersion = 3;
-    s.configurationChanges ??= [];
-    s.durationMs ??= Math.max(0, s.endMs - s.startMs);
-    s.walkthrough ??= [];
+    const s = importedSession(
+      JSON.parse(await f.text()),
+      `import-${crypto.randomUUID()}`,
+    );
     selected = s;
     steps = s.walkthrough;
     traceEdits = {};
@@ -1962,9 +2108,16 @@ function publish() {
   };
   sharedWrite = sharedWrite.catch(() => {}).then(() => api("shared", body));
 }
-action("export-blinks", () => { const s=resultSession(); if(s?.blink) download("gazeaide-blinks.csv","text/csv",blinkCsv(s.blink)); });
+action("export-blinks", () => {
+  const s = resultSession();
+  if (s?.blink) download("gazeaide-blinks.csv", "text/csv", blinkCsv(s.blink));
+});
 function uiTick() {
-  $("blink-live").textContent = blinkStatus(recording && blinkMonitor ? blinkMonitor.snapshot(Date.now()) : session?.blink);
+  $("blink-live").textContent = blinkStatus(
+    recording && blinkMonitor
+      ? blinkMonitor.snapshot(captureClock.at())
+      : session?.blink,
+  );
   const t = now(),
     foreground =
       !document.hidden &&
@@ -2019,7 +2172,7 @@ function calibrationResult(samples, fit) {
   }
   return {
     version: 2,
-    checkedAtMs: Date.now(),
+    checkedAtMs: captureClock.at(),
     displayWidth: innerWidth,
     displayHeight: innerHeight,
     medianErrorPx: percentile(errors, 0.5),
@@ -2209,7 +2362,7 @@ async function guided(mode) {
         standard = evaluate(held, "STEADY", rowHeight());
       const profile = {
         version: 1,
-        createdAtMs: Date.now(),
+        createdAtMs: captureClock.at(),
         response: chosen,
         calibrationKey: calibrationKey(),
         p90VerticalPx: q.p90VerticalPx,

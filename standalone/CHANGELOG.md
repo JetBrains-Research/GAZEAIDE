@@ -2,6 +2,13 @@
 
 ## 1.1.0 — unreleased
 
+- Journal recordings during capture, recover interrupted sessions, and store standalone region snapshots once with retryable append batches.
+- Remove secrets from unauthenticated pages, isolate imported recording IDs, escape report fields, and bundle checksum-verified webcam runtime dependencies for offline use.
+- Pause region dwell across brief tracking gaps; correct word attribution, wrapped-row hysteresis, browser text columns, mouse-scroll targets and exported input provenance.
+- Use monotonic capture timing and stricter blink sampling quality gates; preserve legacy recordings without pooling older detector policies into new references.
+- Recover abandoned library locks, isolate damaged upload queue entries, queue colliding automatic uploads, and cache large-file fading regions.
+- Add both test suites and Plugin Verifier to CI; migrate startup to ProjectActivity and generate runtime version metadata from VERSION.
+
 - Add opt-in webcam blink events, minute windows and quality flags in both editions.
 - Add Personal baseline & blink activity with saved rested-reference recordings, participant/camera isolation, optional separate fatigue/effort ratings and an experimental closure-deviation indicator.
 - Add local JSON/blink CSV/report exports and bounded explicit-send context summaries. Reduced remote uploads continue to exclude blink observations and self-reports.

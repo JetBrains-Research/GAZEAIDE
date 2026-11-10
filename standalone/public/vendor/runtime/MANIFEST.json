@@ -1,0 +1,72 @@
+{
+  "onnxruntime": "1.20.1",
+  "mediapipe": "1.0.0",
+  "files": [
+    {
+      "path": "ort/ort.mjs",
+      "url": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.mjs",
+      "bytes": 3637153,
+      "sha256": "3f2aa1b333b00f029635a84d626db3402c9a540ae4da40eb15d49d661fcc9aa7"
+    },
+    {
+      "path": "ort/ort-wasm-simd-threaded.mjs",
+      "url": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.mjs",
+      "bytes": 24618,
+      "sha256": "745eb7c0ce6f18a6aa521971b2877babc7ffb27eecb58ab3bc6e5ef4692672e8"
+    },
+    {
+      "path": "ort/ort-wasm-simd-threaded.wasm",
+      "url": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.wasm",
+      "bytes": 11246032,
+      "sha256": "207d02be4591c156b0a98f024f3d58005b5b04c92274d759fb390338c63559ea"
+    },
+    {
+      "path": "ort/LICENSE",
+      "url": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.20.1/LICENSE",
+      "bytes": 1073,
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    },
+    {
+      "path": "mediapipe/vision_bundle.mjs",
+      "url": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.0/vision_bundle.mjs",
+      "bytes": 154839,
+      "sha256": "54ad628b478853dadb23261c1c7d14cfe3760b363ccf62b8c02ef73e5c7fb87a"
+    },
+    {
+      "path": "mediapipe/wasm/vision_wasm_internal.js",
+      "url": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.0/wasm/vision_wasm_internal.js",
+      "bytes": 323343,
+      "sha256": "e2da04fe2ab9f58eb2aeb8f8724c80ad8919d31d7f5fb99057565879f05f51ca"
+    },
+    {
+      "path": "mediapipe/wasm/vision_wasm_internal.wasm",
+      "url": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.0/wasm/vision_wasm_internal.wasm",
+      "bytes": 11532084,
+      "sha256": "c266c65f3789bea74ab12dd6609edc96c68655da4540d6097d0732d8be80b742"
+    },
+    {
+      "path": "mediapipe/wasm/vision_wasm_nosimd_internal.js",
+      "url": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.0/wasm/vision_wasm_nosimd_internal.js",
+      "bytes": 323146,
+      "sha256": "3019218e99d08d95cf9710245e6785aeb68520cd703793e67ff1c583920d6345"
+    },
+    {
+      "path": "mediapipe/wasm/vision_wasm_nosimd_internal.wasm",
+      "url": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.0/wasm/vision_wasm_nosimd_internal.wasm",
+      "bytes": 10815273,
+      "sha256": "850d2d7b318c017e71c11b712947df65088e966de3453b9cdf263556d8ae47a6"
+    },
+    {
+      "path": "mediapipe/face_landmarker.task",
+      "url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+      "bytes": 3758596,
+      "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff"
+    },
+    {
+      "path": "mediapipe/LICENSE",
+      "url": "https://raw.githubusercontent.com/google-ai-edge/mediapipe/master/LICENSE",
+      "bytes": 12331,
+      "sha256": "8707eef0533987efc5b155d64761eeb6e20793f50b9bd1a68dad1cf4719d0ed8"
+    }
+  ]
+}

@@ -46,7 +46,7 @@ public final class GazeSessionExporter {
 
     public static Path exportCsv(GazeSession session, Path file) throws IOException {
         StringBuilder sb = new StringBuilder();
-        sb.append("timestamp_iso,elapsed_ms,file,line,column,dwell_ms,explained,source,word,line_text,input_kind,region_first_line,region_last_line,document_version,participant,task,condition,initial_scenario,initial_configuration\n");
+        sb.append("timestamp_iso,elapsed_ms,file,line,column,dwell_ms,explained,source,word,line_text,input_kind,region_first_line,region_last_line,document_version,participant,task,condition,initial_scenario,initial_configuration,session_in_progress\n");
         for (GazeEvent e : session.events) {
             sb.append(ISO.format(Instant.ofEpochMilli(e.timestampMs))).append(',')
               .append(e.elapsedMs).append(',')
@@ -55,7 +55,7 @@ public final class GazeSessionExporter {
               .append(e.column).append(',')
               .append(e.dwellMs).append(',')
               .append(e.explained).append(',')
-              .append(e.source.name()).append(',')
+              .append(e.inputLabel()).append(',')
               .append(csv(e.word == null ? "" : e.word)).append(',')
               .append(csv(e.lineText)).append(',').append(e.inputLabel()).append(',')
               .append(e.region == null ? "" : e.region.firstLine()).append(',')
@@ -68,7 +68,7 @@ public final class GazeSessionExporter {
                   .append(',').append(csv(labels.condition())).append(',').append(csv(session.metadata.initialConfiguration().scenario()))
                   .append(',').append(csv(JSON.toJson(session.metadata.initialConfiguration())));
             }
-            sb.append('\n');
+            sb.append(',').append(session.inProgress).append('\n');
         }
         Files.writeString(file, sb.toString(), StandardCharsets.UTF_8);
         return file;
@@ -90,7 +90,8 @@ public final class GazeSessionExporter {
     public static Path exportJson(GazeSession session, Path file) throws IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");
-        sb.append("  \"schemaVersion\": 3,\n");
+        sb.append("  \"schemaVersion\": 4,\n");
+        sb.append("  \"inProgress\": ").append(session.inProgress).append(",\n");
         sb.append("  \"researchRecordingId\": "); jsonString(sb, session.researchRecordingId); sb.append(",\n");
         sb.append("  \"project\": "); jsonString(sb, session.projectName); sb.append(",\n");
         sb.append("  \"startMs\": ").append(session.startMs).append(",\n");
@@ -111,7 +112,7 @@ public final class GazeSessionExporter {
               .append(", \"column\": ").append(e.column)
               .append(", \"dwellMs\": ").append(e.dwellMs)
               .append(", \"explained\": ").append(e.explained)
-              .append(", \"source\": \"").append(e.source.name()).append('"')
+              .append(", \"source\": \"").append(e.inputLabel()).append('"')
               .append(", \"simulated\": ").append(e.simulated)
               .append(", \"inputKind\": \"").append(e.inputLabel()).append('"')
               .append(", \"word\": "); jsonString(sb, e.word == null ? "" : e.word);
@@ -171,6 +172,7 @@ public final class GazeSessionExporter {
 
         html.append("<header>\n");
         html.append("  <h1>Implicit — Gaze Session Replay</h1>\n");
+        if (session.inProgress) html.append("<p>Recovered checkpoint: this recording was not stopped normally and may be incomplete.</p>");
         if (session.metadata != null) html.append("<p>").append(esc(session.metadata.summary())).append("</p>");
         if (session.configurationChanges.size() > 1) html.append("<p>Configuration changed during recording. See configurationChanges in the JSON export.</p>");
         html.append("  <div class=\"meta\">")
