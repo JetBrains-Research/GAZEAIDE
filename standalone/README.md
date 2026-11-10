@@ -1,16 +1,16 @@
 # GAZEAIDE · Standalone
 
 A standalone edition of the same GAZEAIDE research tool as the IntelliJ plugin. It runs locally,
-without IntelliJ or Java, in a browser with its own conversation and text viewer. Current source: **1.1.0** (unreleased), coordinated with
-the IntelliJ plugin **1.1.0**; latest published release: **1.0.0**. It uses the same UnitEye/EyeMU assets, scenario vocabulary,
+without IntelliJ or Java, in a browser with its own conversation and text viewer. Version **1.1.0**, coordinated with
+the IntelliJ plugin **1.1.0**, is available in the [v1.1.0 release](https://github.com/JetBrains-Research/GAZEAIDE/releases/tag/v1.1.0). It uses the same UnitEye/EyeMU assets, scenario vocabulary,
 interaction timing and exposure-recording concepts. This is a working research prototype;
 automated and synthetic tests do not establish live gaze accuracy or research benefit.
 
 GAZEAIDE was started by **[Heidi Albarazi](https://heidialbarazi.me/)** during her internship at **JetBrains Research**, and was subsequently updated by **Ilia Zaharov** ([LinkedIn](https://www.linkedin.com/in/ilya-m-zakharov/), [Google Scholar](https://scholar.google.com/citations?user=MTOEI-oAAAAJ&hl=en)). The project includes the original IntelliJ plugin and a standalone edition of the same research tool.
 
-## Blink activity (1.1.0 development)
+## Blink activity and recording reliability (1.1.0)
 
-Both editions now support opt-in blink observations and a longer-term personal rested reference. See the [step-by-step guide and measurement limits](docs/BLINK_ACTIVITY.md). The 1.0.0 release below predates this feature; build the current source for 1.1.0.
+Both editions support opt-in blink observations and a longer-term personal rested reference. Version 1.1.0 also adds recording journals/recovery, security fixes and bundled offline webcam runtimes. See the [step-by-step blink guide and measurement limits](docs/BLINK_ACTIVITY.md).
 
 See the [recording, security and measurement hardening notes](docs/HARDENING-2026-11-10.md) for the current storage format, recovery limits and deferred work.
 
@@ -50,7 +50,7 @@ The local app is a browser application, not a signed native macOS executable. Th
 contains the complete app source, vendored tracker/model, notices, receiver template and tests.
 It needs the installed Node runtime and browser. It can be copied independently of the plugin
 checkout. `npm run package` builds that portable ZIP; no installation or publication occurs.
-See [release validation and limitations](docs/VALIDATION-1.0.md).
+See [release validation and limitations](docs/VALIDATION-1.1.md).
 
 ## First try
 
@@ -241,7 +241,7 @@ raw gaze/video and absolute event times. Code/column/region indices and relative
 `docs/google-drive-receiver.js` is the plugin's receiver with a backward-compatible optional
 `edition` / `editionVersion` extension. Deploy/update that template to accept standalone labels.
 Legacy plugin payloads still validate. Standalone payloads carry `edition=standalone`,
-`editionVersion=1.0.0`; `pluginVersion=1.0.0` denotes the compatible plugin workflow. Existing
+`editionVersion=1.1.0`; `pluginVersion=1.1.0` denotes the compatible plugin workflow. Existing
 receiver deployments must be updated before they can accept the new optional fields.
 
 Generic HTTPS receivers use a bearer token. Google Apps Script uses `{token,payload}` and follows

@@ -1,6 +1,6 @@
 # IntelliJ and standalone editions
 
-GAZEAIDE 1.0.0 provides the same research workflow in two hosts: estimated viewing input → stable region selection → visual adaptation or captured context → an explicit question → optional research records and exports. Shared functionality does not establish empirical equivalence between hosts.
+GAZEAIDE 1.1.0 provides the same research workflow in two hosts: estimated viewing input → stable region selection → visual adaptation or captured context → an explicit question → optional research records and exports. Shared functionality does not establish empirical equivalence between hosts.
 
 | Capability | IntelliJ edition | Standalone edition |
 | --- | --- | --- |

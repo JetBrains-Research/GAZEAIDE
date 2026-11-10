@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 — unreleased
+## 1.1.0 — 2026-11-10
 
 - Journal recordings during capture, recover interrupted sessions, and store standalone region snapshots once with retryable append batches.
 - Remove secrets from unauthenticated pages, isolate imported recording IDs, escape report fields, and bundle checksum-verified webcam runtime dependencies for offline use.

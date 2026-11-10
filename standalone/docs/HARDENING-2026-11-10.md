@@ -1,7 +1,7 @@
 # Recording, security and measurement hardening
 
-This update is part of the unreleased 1.1.0 source. Existing 1.0.0 release ZIPs
-do not contain these fixes. Build from the current source to use them.
+These fixes are included in the [v1.1.0 release](https://github.com/JetBrains-Research/GAZEAIDE/releases/tag/v1.1.0)
+and its source. Existing 1.0.0 release ZIPs remain unchanged and do not contain them.
 
 ## Recording reliability and compatibility
 

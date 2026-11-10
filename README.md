@@ -9,9 +9,9 @@
 
 Both provide viewing-driven visual scenarios, smoothing, calibration with retry, local recordings, captured context, research records, feedback and exports. The standalone also displays local Codex conversation history and records its own observed replies. The plugin cannot observe native AI replies; optional pasted answers are labelled as user transcriptions.
 
-## Blink activity (1.1.0 development)
+## Blink activity and recording reliability (1.1.0)
 
-Both editions now support opt-in blink observations and a longer-term personal rested reference. See the [step-by-step guide and measurement limits](docs/BLINK_ACTIVITY.md). The 1.0.0 release below predates this feature; build the current source for 1.1.0.
+Both editions support opt-in blink observations and a longer-term personal rested reference. Version 1.1.0 also adds recording journals/recovery, security fixes and bundled offline webcam runtimes. See the [step-by-step blink guide and measurement limits](docs/BLINK_ACTIVITY.md).
 
 See the [recording, security and measurement hardening notes](docs/HARDENING-2026-11-10.md) for current-source behavior and remaining validation limits.
 
@@ -29,7 +29,7 @@ node standalone/launch.mjs
 
 Open the private launch URL printed in the terminal if a browser does not open automatically. It contains a per-launch access key; keep it private. Click **Try sample conversation**, keep **Mouse proxy**, then **Review setup & start → Start recording**. Move the pointer across passages. The viewed block stays clear while surrounding text dims. **Stop recording** opens results and exports. Keep the terminal open; Ctrl+C stops the server. No npm dependency installation is needed for GAZEAIDE.
 
-For the packaged editions, use the ZIPs attached to the [v1.0.0 release](https://github.com/JetBrains-Research/GAZEAIDE/releases/tag/v1.0.0). The plugin ZIP is `implicit-gaze-1.0.0.zip`; the standalone ZIP is `gazeaide-standalone-1.0.0.zip`. Do not install GitHub's automatic source ZIP as an IntelliJ plugin.
+For the packaged editions, use the ZIPs attached to the [v1.1.0 release](https://github.com/JetBrains-Research/GAZEAIDE/releases/tag/v1.1.0). The plugin ZIP is `implicit-gaze-1.1.0.zip`; the standalone ZIP is `gazeaide-standalone-1.1.0.zip`. Do not install GitHub's automatic source ZIP as an IntelliJ plugin.
 
 ## Instructions
 

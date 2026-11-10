@@ -1,4 +1,4 @@
-# Agent context and research records — plugin 1.0.0 / standalone 1.0.0
+# Agent context and research records — plugin 1.1.0 / standalone 1.1.0
 
 The two editions collect interaction context for studying agent assistance. The effects in the
 viewer provide feedback; the research deliverable is versioned context linked to explicit
@@ -32,7 +32,7 @@ remote-study uploads exclude these examples, source, prompts, answers and feedba
 
 ## Try it in IntelliJ
 
-1. Install `implicit-gaze-1.0.0.zip` manually, then restart if requested. No automatic installation.
+1. Install `implicit-gaze-1.1.0.zip` manually, then restart if requested. No automatic installation.
 2. Use **Tools → Implicit Gaze → Ask JetBrains AI about Viewed Code…**, or a captured offer.
 3. The editable prepared question, **Attach recent context**, **Preview attachment** and
    **Save research example locally** are shown before **Copy prompt & open AI Chat**.

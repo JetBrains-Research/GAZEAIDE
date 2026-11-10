@@ -1,6 +1,6 @@
-# GAZEAIDE 1.1 development validation
+# GAZEAIDE 1.1.0 validation
 
-Checked on macOS, 6 November 2026, using Node.js 24.13.1 and the installed IntelliJ IDEA 2026.2.1 JBR/SDK. This records software checks for the unreleased 1.1 source/builds; the published 1.0 release has its own validation record.
+Checked on macOS, 6 November 2026, using Node.js 24.13.1 and the installed IntelliJ IDEA 2026.2.1 JBR/SDK. These original development checks are retained below alongside the November 10 release checks. The 1.0 release has its own validation record.
 
 - **138 Java/component tests:** pass, including the native wizard, cross-session persistence, legacy records, blink-only export/context, and a timestamped eye-observation fixture matched to standalone.
 - **70 JavaScript tests:** pass (50 standalone, 20 plugin-side bridge/receiver/tracker tests). New cases cover bilateral blinks, winks/uncertainty, threshold noise, interruptions, sparse frames, duplicate timestamps, duration bounds, minute boundaries, missing versus zero observations, reference isolation/future exclusion, context bounds/opt-out, authenticated persistence, CSV safety, and inference scheduling.

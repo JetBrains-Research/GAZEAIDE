@@ -1,6 +1,6 @@
 # Manual IntelliJ checks
 
-Use the installable `implicit-gaze-1.0.0.zip` with IntelliJ IDEA and JCEF support. Automated release checks used the 2026.2.1 SDK; run these checks on each intended research setup. See [installation and first run](GETTING_STARTED.md#intellij-plugin).
+Use the installable `implicit-gaze-1.1.0.zip` with IntelliJ IDEA and JCEF support. Automated checks include the 2023.1 SDK, Plugin Verifier for 2023.1/2025.2, and a local 2026.2.1 build/verifier check; run physical checks on each intended research setup. See [installation and first run](GETTING_STARTED.md#intellij-plugin).
 
 ## Camera-free workflow
 

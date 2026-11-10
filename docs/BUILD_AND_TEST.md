@@ -21,7 +21,7 @@ Use an installed JDK/JBR and the checked-in Gradle wrapper. `JAVA_HOME` must poi
 ./gradlew '-PlocalIdePath=/path/to/IntelliJ IDEA.app/Contents' test buildPlugin verifyPluginStructure verifyPlugin
 ```
 
-The output is `build/distributions/implicit-gaze-1.1.0.zip`. The build does not install or launch the IDE. Dependencies/Gradle may need downloading on a fresh machine; use `--offline` only after they are cached. Without `localIdePath`, the build downloads its configured default SDK; the release evidence uses the installed 2026.2.1 SDK rather than asserting every IDE was tested.
+The output is `build/distributions/implicit-gaze-1.1.0.zip`. The build does not install or launch the IDE. Dependencies/Gradle may need downloading on a fresh machine; use `--offline` only after they are cached. Without `localIdePath`, the build downloads the default 2023.1 SDK and verifies against IntelliJ Community 2023.1 and 2025.2. An additional local 2026.2.1 build/verifier check is recorded; physical checks on other IDE/device combinations remain separate.
 
 On Windows use `gradlew.bat` and the corresponding installed IDE directory. On Linux use the installation directory containing the IDE SDK. These platforms need their own runtime/device validation.
 

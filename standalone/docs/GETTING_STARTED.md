@@ -1,4 +1,4 @@
-# Getting started with GAZEAIDE Standalone 1.0.0
+# Getting started with GAZEAIDE Standalone 1.1.0
 
 The standalone edition runs locally in your browser. The IntelliJ edition is available in the [same project repository](https://github.com/JetBrains-Research/GAZEAIDE).
 
@@ -41,7 +41,7 @@ If Codex is not found, verify it in the same terminal used to start GAZEAIDE. Yo
 The companion's own chat works without registering MCP. To let another local Codex chat inspect the companion's captured context, register the bridge deliberately:
 
 ```sh
-codex mcp add gazeaide -- node '/absolute/path/to/gazeaide-standalone-1.0.0/mcp.mjs'
+codex mcp add gazeaide -- node '/absolute/path/to/gazeaide-standalone-1.1.0/mcp.mjs'
 ```
 
 Use your extracted folder's actual absolute path. Add `--data '/absolute/path/to/library'` after the script if using a custom library. Keep the companion running, then enable/reload the server in your Codex client. `codex mcp list` lists configured servers; `codex mcp remove gazeaide` removes this entry. Registration changes your Codex MCP configuration; GAZEAIDE never does it automatically. See [official MCP instructions](https://learn.chatgpt.com/docs/extend/mcp).
@@ -63,4 +63,4 @@ Stop recording before closing. In standalone, stop/release the camera and use Ct
 
 ## Optional blink activity and longer-term personalization (1.1)
 
-Connect a real webcam, then select **Personal baseline & blink activity**. In Session choose your participant code and camera group, explicitly mark rested reference recordings, and optionally enter separate fatigue/effort ratings. Record several minutes; stop and inspect Results. A later recording uses earlier matching rested recordings once at least three usable minute windows and ten blinks exist. No score appears before quality and reference requirements are met. This differs from the short Personalization scenario (plugin) or Fit personal response task (standalone) that selects gaze smoothing. Read the [complete workflow and measurement limits](BLINK_ACTIVITY.md). This feature requires a 1.1 build; the published 1.0.0 ZIPs do not include it.
+Connect a real webcam, then select **Personal baseline & blink activity**. In Session choose your participant code and camera group, explicitly mark rested reference recordings, and optionally enter separate fatigue/effort ratings. Record several minutes; stop and inspect Results. A later recording uses earlier matching rested recordings once at least three usable minute windows and ten blinks exist. No score appears before quality and reference requirements are met. This differs from the short Personalization scenario (plugin) or Fit personal response task (standalone) that selects gaze smoothing. Read the [complete workflow and measurement limits](BLINK_ACTIVITY.md). This feature is included in the 1.1.0 release; older 1.0.0 ZIPs do not include it.

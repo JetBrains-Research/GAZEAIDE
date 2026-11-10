@@ -1,10 +1,10 @@
 # Implicit / GAZEAIDE
 
 A local research prototype for gaze-guided code review in JetBrains IDEs. IntelliJ edition
-**1.0.0** fixes historical context windows and adds resumable calibration retries with longer
-collection. The shared workflow includes recent context at the explicit native-chat handoff, local question/context records,
+**1.1.0** adds recording journals/recovery, bundled offline webcam runtimes, measurement
+corrections and opt-in blink observations. It retains resumable calibration retries and historical context windows. The shared workflow includes recent context at the explicit native-chat handoff, local question/context records,
 optional manually transcribed answers and feedback, JSONL export, and an Extra steady response.
-See [Agent research workflow](../docs/agent-research.md). The matching standalone edition is **1.0.0**.
+See [Agent research workflow](../docs/agent-research.md). The matching standalone edition is **1.1.0**.
 
 Optional remote-study upload provides connectors, a reduced-data preview, synthetic testing
 and a local retry queue. Nothing uploads unless configured and enabled; the feature requires
@@ -215,7 +215,7 @@ Open this checkout as a Gradle project. Java output is 17. Use an installed JDK/
 node --test src/test/js/*.test.mjs
 ```
 
-Install `build/distributions/implicit-gaze-1.0.0.zip` manually using **Settings → Plugins → gear →
+Install `build/distributions/implicit-gaze-1.1.0.zip` manually using **Settings → Plugins → gear →
 Install Plugin from Disk…**. The build does not install or start IntelliJ. Default SDK is IDEA
 Community 2023.1; native AI additionally needs a compatible installed AI plugin.
 

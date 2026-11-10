@@ -1,4 +1,4 @@
-# Getting started with GAZEAIDE 1.0.0
+# Getting started with GAZEAIDE 1.1.0
 
 Choose **Standalone** if you want to explore Codex output without installing an IDE plugin. Choose **IntelliJ plugin** if you want the effects directly in your code editor. They share the research workflow, but their calibrations and saved libraries are separate.
 
@@ -53,7 +53,7 @@ MCP supplies captured context when called. It cannot paint highlights in native 
 ### Install
 
 1. Use IntelliJ IDEA with its JCEF browser support. The local release build was checked against IntelliJ IDEA 2026.2.1; other supported IDE builds need a manual runtime check. A webcam and AI Assistant are optional.
-2. Download `implicit-gaze-1.0.0.zip` from the published release assets, or [build it from source](BUILD_AND_TEST.md). Keep this ZIP intact; GitHub's source ZIP is not an installable plugin.
+2. Download `implicit-gaze-1.1.0.zip` from the published release assets, or [build it from source](BUILD_AND_TEST.md). Keep this ZIP intact; GitHub's source ZIP is not an installable plugin.
 3. In IntelliJ, open **Settings → Plugins → gear → Install Plugin from Disk…**, choose the plugin ZIP, and restart if requested.
 4. Open **Tools → Implicit Gaze → Open Gaze Research…**. The menu retains the plugin's original Implicit name so existing users/settings remain compatible.
 
@@ -85,4 +85,4 @@ Stop recording before closing. In standalone, stop/release the camera and use Ct
 
 ## Optional blink activity and longer-term personalization (1.1)
 
-Connect a real webcam, then select **Personal baseline & blink activity**. In Session choose your participant code and camera group, explicitly mark rested reference recordings, and optionally enter separate fatigue/effort ratings. Record several minutes; stop and inspect Results. A later recording uses earlier matching rested recordings once at least three usable minute windows and ten blinks exist. No score appears before quality and reference requirements are met. This differs from the short Personalization scenario (plugin) or Fit personal response task (standalone) that selects gaze smoothing. Read the [complete workflow and measurement limits](BLINK_ACTIVITY.md). This feature requires a 1.1 build; the published 1.0.0 ZIPs do not include it.
+Connect a real webcam, then select **Personal baseline & blink activity**. In Session choose your participant code and camera group, explicitly mark rested reference recordings, and optionally enter separate fatigue/effort ratings. Record several minutes; stop and inspect Results. A later recording uses earlier matching rested recordings once at least three usable minute windows and ten blinks exist. No score appears before quality and reference requirements are met. This differs from the short Personalization scenario (plugin) or Fit personal response task (standalone) that selects gaze smoothing. Read the [complete workflow and measurement limits](BLINK_ACTIVITY.md). This feature is included in the 1.1.0 release; older 1.0.0 ZIPs do not include it.
