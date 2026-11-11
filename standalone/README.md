@@ -267,3 +267,7 @@ a research release; this build remains local.
 ## Project license
 
 GAZEAIDE project code is [GPL-3.0-only](LICENSE). See [attribution and dependency terms](LICENSING.md).
+
+## Viewing maps
+
+After recording or opening a saved session in Results, choose **Viewing map**. Compare attributed seconds or visit counts per captured line/region, filter time and input source, inspect recorded calibration quality, and export SVG/PNG or the filtered CSV/JSON values. See [the map guide](docs/VIEWING_MAPS.md).

@@ -13,7 +13,7 @@ public final class GazeResearchPanel extends JPanel {
         Input(String title) { this.title = title; }
         @Override public String toString() { return title; }
     }
-    public enum Action { REPORT, EXPORT, WALKTHROUGH, TRACE, CONTEXT, AI_SETTINGS, ASK_AI, DEMO, GUIDE, REMOTE }
+    public enum Action { REPORT, MAP, EXPORT, WALKTHROUGH, TRACE, CONTEXT, AI_SETTINGS, ASK_AI, DEMO, GUIDE, REMOTE }
     public enum Step { INPUT, SCENARIO, SESSION, READY, RECORDING, RESULTS, PROFILE }
     public record SavedSession(String id, String title) { @Override public String toString() { return title; } }
     public record View(Input input, boolean paused, boolean running, boolean starting, boolean tracking,
@@ -115,6 +115,7 @@ public final class GazeResearchPanel extends JPanel {
     private final JPanel features = column(), aiSetup = column(), labels = column();
     private final JTextArea provider = help("", 2);
     private final JButton report = action("Viewing report", "report", Action.REPORT);
+    private final JButton viewingMap = action("Viewing map…", "viewing-map", Action.MAP);
     private final JButton export = action("Export recording…", "export", Action.EXPORT);
     private final JButton walkthrough = action("Review walkthrough", "walkthrough", Action.WALKTHROUGH);
     private final JButton trace = action("Replay viewing trace", "trace", Action.TRACE);
@@ -242,6 +243,8 @@ public final class GazeResearchPanel extends JPanel {
     }
     private JPanel resultsPage() {
         JPanel body = column(); body.add(heading("Session results")); body.add(result); body.add(row(report, export));
+        body.add(viewingMap);
+        body.add(help("Open a local browser map of captured lines or regions. Filter time and input source, compare seconds or visits, and export SVG, PNG or values.", 3));
         blinkResult.setName("blink-results");body.add(blinkResult);
         remoteResult.setName("remote-results-status"); body.add(remoteResult);
         body.add(action("Remote upload: preview, send or configure…", "remote-results", Action.REMOTE));
@@ -355,6 +358,7 @@ public final class GazeResearchPanel extends JPanel {
         pause.setText(s.paused ? "Resume recording" : "Pause recording"); stopCamera.setEnabled(s.input != Input.MOUSE);
         stopCamera.setText(s.input == Input.SIMULATION ? "Stop simulation" : "Stop camera");
         report.setEnabled(s.hasSession); export.setEnabled(s.hasSession); trace.setEnabled(s.hasSession);
+        viewingMap.setEnabled(s.hasSession);
         walkthrough.setEnabled(s.hasSession);
         back.setVisible(step != Step.RECORDING && step != Step.RESULTS && step != Step.PROFILE); back.setEnabled(step != Step.INPUT && !s.configurationLocked);
         next.setText(switch (step) {

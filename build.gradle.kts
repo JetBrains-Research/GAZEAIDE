@@ -37,6 +37,7 @@ tasks.withType<JavaCompile>().configureEach { options.release.set(17) }
 tasks.test { useJUnitPlatform() }
 tasks.processResources {
     from("standalone/public/vendor/runtime") { into("gaze/web/runtime") }
+    from("standalone/lib/viewing-map.mjs") { into("gaze") }
 }
 tasks.register<JavaExec>("previewResearchPanel") {
     group = "verification"

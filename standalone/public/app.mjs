@@ -28,6 +28,7 @@ import {
   blinkCsv,
 } from "/lib/blinks.mjs";
 import { reduced, reportHtml } from "/lib/research.mjs";
+import { mountViewingMap } from "/lib/viewing-map.mjs";
 import { targetQuality, runGuideTargets } from "/lib/guide.mjs";
 import { buildAgentContext, composeAgentRequest } from "/lib/agent-context.mjs";
 import { reviewItems, reviewDocument, documentRegion } from "/lib/review.mjs";
@@ -96,6 +97,7 @@ let config,
   stepIndex = 0,
   traceEdits = {},
   replayTimer,
+  viewingMap,
   uploadPreview = null,
   queue = null,
   chatEvents = [],
@@ -316,6 +318,7 @@ $("cursor").addEventListener("change", () => {
 });
 function tab(id) {
   engine.exit(now());
+  document.body.classList.toggle("viewing-map-open", id === "map");
   for (const p of document.querySelectorAll(".panel"))
     p.classList.toggle("active", p.id === id);
   for (const b of document.querySelectorAll("[data-tab]"))
@@ -1917,6 +1920,8 @@ const trace = () => {
 function showResults() {
   const s = resultSession();
   if (!s) return;
+  if (viewingMap) viewingMap.update(s);
+  else viewingMap = mountViewingMap($("viewing-map"), s);
   $("result-summary").textContent =
     `${s.events.length} line visits · ${(s.durationMs / 1000).toFixed(1)} s session duration · ${(s.events.reduce((n, e) => n + e.dwellMs, 0) / 1000).toFixed(1)} s exposure${s.inProgress ? " · recovered/in-progress checkpoint" : ""}`;
   $("blink-results").textContent = blinkStatus(s.blink);

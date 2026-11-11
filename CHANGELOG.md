@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 — 2026-11-11
+
+- Add a dedicated gaze-derived viewing map in both editions with one shared offline component.
+- Show captured lines or recorded regions by attributed seconds or visit count, with interval clipping, separate input sources/document versions, and explicit missing-content states.
+- Include recorded calibration-quality intervals, bounded pages, SVG/PNG image export and complete filtered CSV/JSON values. Portable map data stores each captured region once.
+
 ## 1.1.0 — 2026-11-10
 
 - Journal recordings during capture, recover interrupted sessions, and store standalone region snapshots once with retryable append batches.

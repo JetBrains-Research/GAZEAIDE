@@ -138,6 +138,10 @@
                     class="io.github.gazehighlighter.ConfigureGazeRemoteUploadAction"
                     text="Configure Remote Study Upload…"
                     description="Optional research data connector: reduced payload preview, synthetic test, upload and local retry queue"/>
+            <action id="io.github.gazehighlighter.ViewingMap"
+                    class="io.github.gazehighlighter.ShowGazeViewingMapAction"
+                    text="Viewing Map…"
+                    description="Open a local map of captured lines or regions with time/source filters and SVG, PNG and data export"/>
             <action id="io.github.gazehighlighter.ReadReport"
                     class="io.github.gazehighlighter.ReadGazeSessionReportAction"
                     text="Read Report"

@@ -1,6 +1,6 @@
 {
   "name": "gazeaide-standalone",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "GAZEAIDE standalone research companion with local webcam tracking and Codex integration",

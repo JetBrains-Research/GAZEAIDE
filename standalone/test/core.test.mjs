@@ -218,7 +218,7 @@ test("CSV resists spreadsheet formulas; self-contained report escapes code and s
   const html = reportHtml(bad);
   assert.ok(!html.includes("<img src=x"));
   assert.ok(html.includes("\\u003c"));
-  assert.ok(html.includes("schema") === false);
+  assert.ok(html.includes('id="gazeaide-viewing-map"'));
 });
 test("reduced data removes paths, labels, code, epoch times, notes and AI content and passes original receiver schema", async () => {
   const extra = structuredClone(session);

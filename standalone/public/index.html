@@ -295,6 +295,7 @@
           ><button data-tab="context">Context</button
           ><button data-tab="tour">Walkthrough</button
           ><button data-tab="results">Results</button
+          ><button data-tab="map">Viewing map</button
           ><button data-tab="codex">Codex</button>
         </nav>
         <div id="session" class="panel active">
@@ -473,6 +474,10 @@
             ><button id="retry-upload">Retry queued upload</button>
             <p id="upload-status" class="hint">No upload service connected.</p>
           </details>
+        </div>
+        <div id="map" class="panel">
+          <p class="hint">Choose a saved recording in Results, or stop the current recording. The map uses that recording's captured text.</p>
+          <div id="viewing-map"><p>Record or import a session to inspect its viewing map.</p></div>
         </div>
         <div id="codex" class="panel">
           <div class="section-label">CODEX CONNECTION</div>

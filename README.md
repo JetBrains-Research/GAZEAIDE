@@ -9,6 +9,10 @@
 
 Both provide viewing-driven visual scenarios, smoothing, calibration with retry, local recordings, captured context, research records, feedback and exports. The standalone also displays local Codex conversation history and records its own observed replies. The plugin cannot observe native AI replies; optional pasted answers are labelled as user transcriptions.
 
+## Viewing maps (1.2.0 source)
+
+Both editions now provide captured-code maps by viewing time or visit count, with time/input filters, recorded calibration quality, and SVG/PNG/CSV/JSON exports. See the [viewing-map guide](docs/VIEWING_MAPS.md). The published 1.1.0 packages below predate these additions.
+
 ## Blink activity and recording reliability (1.1.0)
 
 Both editions support opt-in blink observations and a longer-term personal rested reference. Version 1.1.0 also adds recording journals/recovery, security fixes and bundled offline webcam runtimes. See the [step-by-step blink guide and measurement limits](docs/BLINK_ACTIVITY.md).

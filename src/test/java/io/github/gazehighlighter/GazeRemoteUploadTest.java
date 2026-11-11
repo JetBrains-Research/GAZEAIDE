@@ -41,7 +41,7 @@ class GazeRemoteUploadTest {
         assertEquals("WEBCAM", payload.getAsJsonArray("events").get(0).getAsJsonObject().get("input").getAsString());
         assertEquals("task-2", payload.get("taskCode").getAsString()); assertEquals(1000, payload.get("durationMs").getAsLong());
         try (var stream = getClass().getResourceAsStream("/remote-session-v1.json")) {
-            assertNotNull(stream); var expected=JsonParser.parseString(new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject(); expected.addProperty("pluginVersion","1.1.0"); assertEquals(expected, payload,
+            assertNotNull(stream); var expected=JsonParser.parseString(new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject(); expected.addProperty("pluginVersion",GazeVersion.VERSION); assertEquals(expected, payload,
                     "Java payload and the receiver's golden fixture must agree");
         }
     }

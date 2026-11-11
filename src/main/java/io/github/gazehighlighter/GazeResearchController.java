@@ -206,6 +206,7 @@ final class GazeResearchController implements GazeResearchPanel.Controller {
             default -> {
                 String id = switch (action) {
                     case REPORT -> "ReadReport";
+                    case MAP -> "ViewingMap";
                     case EXPORT -> "ExportSession";
                     case TRACE -> "BuildWalkthrough";
                     case CONTEXT -> "ShowContext";

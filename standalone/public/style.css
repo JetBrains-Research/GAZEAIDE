@@ -792,3 +792,9 @@ dialog::backdrop {
 #agent-example-question {
   font-weight: 650;
 }
+
+/* A map needs room for captured code rather than the narrow live-research rail. */
+body.viewing-map-open main { grid-template-columns: minmax(0, 1fr); }
+body.viewing-map-open #setup, body.viewing-map-open #workspace { display: none; }
+body.viewing-map-open #research { display: block; grid-column: 1; grid-row: 1; border: 0; }
+body.viewing-map-open #map { max-width: 1440px; margin: 0 auto; }

@@ -187,7 +187,8 @@ public final class GazeSessionExporter {
         if(session.blink!=null)html.append("<h2>Blink activity</h2><pre>").append(esc(GazeBlinkMonitor.status(session.blink))).append("</pre>");
         html.append("</header>\n");
 
-        html.append("<div id=\"transport\">\n")
+        html.append(GazeViewingMap.section(session));
+        html.append("<h2>Chronological replay</h2><div id=\"transport\">\n")
             .append("  <button id=\"playBtn\">▶ Play</button>\n")
             .append("  <input id=\"scrubber\" type=\"range\" min=\"0\" max=\"").append(Math.max(1, session.durationMs())).append("\" value=\"").append(Math.max(1, session.durationMs())).append("\">\n")
             .append("  <span id=\"clock\">00:00 / ").append(formatDuration(session.durationMs())).append("</span>\n")

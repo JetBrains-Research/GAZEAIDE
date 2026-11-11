@@ -11,7 +11,7 @@ node --input-type=module -e "import {verifyAssets} from './standalone/lib/assets
 node standalone/build-release.mjs
 ```
 
-The final command creates `standalone/artifacts/gazeaide-standalone-1.1.0.zip`, an extracted staging folder and a SHA-256 file. The portable ZIP includes source, tracker/model assets, notices, documentation and tests; `.local`, tokens and QA output are excluded. Test the extracted folder independently with `node --test test/*.test.mjs`.
+The final command creates `standalone/artifacts/gazeaide-standalone-1.2.0.zip`, an extracted staging folder and a SHA-256 file. The portable ZIP includes source, tracker/model assets, notices, documentation and tests; `.local`, tokens and QA output are excluded. Test the extracted folder independently with `node --test test/*.test.mjs`.
 
 ## IntelliJ plugin
 
@@ -21,7 +21,7 @@ Use an installed JDK/JBR and the checked-in Gradle wrapper. `JAVA_HOME` must poi
 ./gradlew '-PlocalIdePath=/path/to/IntelliJ IDEA.app/Contents' test buildPlugin verifyPluginStructure verifyPlugin
 ```
 
-The output is `build/distributions/implicit-gaze-1.1.0.zip`. The build does not install or launch the IDE. Dependencies/Gradle may need downloading on a fresh machine; use `--offline` only after they are cached. Without `localIdePath`, the build downloads the default 2023.1 SDK and verifies against IntelliJ Community 2023.1 and 2025.2. An additional local 2026.2.1 build/verifier check is recorded; physical checks on other IDE/device combinations remain separate.
+The output is `build/distributions/implicit-gaze-1.2.0.zip`. The build does not install or launch the IDE. Dependencies/Gradle may need downloading on a fresh machine; use `--offline` only after they are cached. Without `localIdePath`, the build downloads the default 2023.1 SDK and verifies against IntelliJ Community 2023.1 and 2025.2. An additional local 2026.2.1 build/verifier check is recorded; physical checks on other IDE/device combinations remain separate.
 
 On Windows use `gradlew.bat` and the corresponding installed IDE directory. On Linux use the installation directory containing the IDE SDK. These platforms need their own runtime/device validation.
 
@@ -38,3 +38,5 @@ The [1.1 validation record](VALIDATION-1.1.md) includes the November 10 hardenin
 For a version update, edit root `VERSION` and run `node scripts/sync-version.mjs`.
 Gradle generates the Java runtime version from that file; CI checks the standalone
 package/browser metadata for drift. Schema versions are independent of release versions.
+
+The [1.2 validation record](VALIDATION-1.2.md) covers the shared viewing maps, portable image/data exports and current test counts.
